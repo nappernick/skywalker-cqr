@@ -1,0 +1,452 @@
+[
+  {
+    "conversation_id": "conv_001",
+    "domain": "travel",
+    "turns": [
+      {"role": "user", "text": "What is the per diem rate for meals in New York?", "gold_rewrite": "What is the per diem rate for meals in New York?", "failure_mode": "none"},
+      {"role": "user", "text": "And for London?", "gold_rewrite": "What is the per diem rate for meals in London?", "failure_mode": "ellipsis"},
+      {"role": "user", "text": "Does it include alcohol?", "gold_rewrite": "Does the London meal per diem include alcohol?", "failure_mode": "anaphora"}
+    ]
+  },
+  {
+    "conversation_id": "conv_002",
+    "domain": "travel",
+    "turns": [
+      {"role": "user", "text": "Can I book a business class flight for international travel?", "gold_rewrite": "Can I book a business class flight for international travel?", "failure_mode": "none"},
+      {"role": "user", "text": "What about domestic?", "gold_rewrite": "Can I book a business class flight for domestic travel?", "failure_mode": "ellipsis"},
+      {"role": "user", "text": "Who needs to approve that?", "gold_rewrite": "Who needs to approve domestic business class flights?", "failure_mode": "anaphora"}
+    ]
+  },
+  {
+    "conversation_id": "conv_003",
+    "domain": "travel",
+    "turns": [
+      {"role": "user", "text": "What is the preferred car rental agency?", "gold_rewrite": "What is the preferred car rental agency?", "failure_mode": "none"},
+      {"role": "user", "text": "Do they provide insurance?", "gold_rewrite": "Does the preferred car rental agency provide insurance?", "failure_mode": "anaphora"},
+      {"role": "user", "text": "What if I get into an accident?", "gold_rewrite": "What should I do if I get into an accident with a rental car?", "failure_mode": "topic_shift"}
+    ]
+  },
+  {
+    "conversation_id": "conv_004",
+    "domain": "travel",
+    "turns": [
+      {"role": "user", "text": "How many nights can I stay in a hotel for a conference?", "gold_rewrite": "How many nights can I stay in a hotel for a conference?", "failure_mode": "none"},
+      {"role": "user", "text": "Is there a nightly budget limit?", "gold_rewrite": "Is there a nightly budget limit for hotel stays?", "failure_mode": "topic_continuation"},
+      {"role": "user", "text": "Does that apply to international ones?", "gold_rewrite": "Does the nightly hotel budget limit apply to international conferences?", "failure_mode": "anaphora"}
+    ]
+  },
+  {
+    "conversation_id": "conv_005",
+    "domain": "expense",
+    "turns": [
+      {"role": "user", "text": "How do I expense a client dinner?", "gold_rewrite": "How do I expense a client dinner?", "failure_mode": "none"},
+      {"role": "user", "text": "Do I need to list attendees?", "gold_rewrite": "Do I need to list attendees for a client dinner expense?", "failure_mode": "topic_continuation"},
+      {"role": "user", "text": "What if it was just drinks?", "gold_rewrite": "How do I expense client drinks without dinner?", "failure_mode": "topic_shift"}
+    ]
+  },
+  {
+    "conversation_id": "conv_006",
+    "domain": "expense",
+    "turns": [
+      {"role": "user", "text": "What is the deadline for submitting expense reports?", "gold_rewrite": "What is the deadline for submitting expense reports?", "failure_mode": "none"},
+      {"role": "user", "text": "Can I submit them late?", "gold_rewrite": "Can I submit expense reports after the deadline?", "failure_mode": "anaphora"},
+      {"role": "user", "text": "Will I still get paid?", "gold_rewrite": "Will I still be reimbursed if I submit expense reports late?", "failure_mode": "topic_continuation"}
+    ]
+  },
+  {
+    "conversation_id": "conv_007",
+    "domain": "hr",
+    "turns": [
+      {"role": "user", "text": "How many weeks of parental leave do we get?", "gold_rewrite": "How many weeks of parental leave do employees get?", "failure_mode": "none"},
+      {"role": "user", "text": "Is it fully paid?", "gold_rewrite": "Is parental leave fully paid?", "failure_mode": "anaphora"},
+      {"role": "user", "text": "What about secondary caregivers?", "gold_rewrite": "How many weeks of fully paid parental leave do secondary caregivers get?", "failure_mode": "ellipsis"}
+    ]
+  },
+  {
+    "conversation_id": "conv_008",
+    "domain": "hr",
+    "turns": [
+      {"role": "user", "text": "Can I carry over unused vacation days to next year?", "gold_rewrite": "Can I carry over unused vacation days to next year?", "failure_mode": "none"},
+      {"role": "user", "text": "How many?", "gold_rewrite": "How many unused vacation days can I carry over?", "failure_mode": "ellipsis"},
+      {"role": "user", "text": "When do they expire?", "gold_rewrite": "When do carried-over vacation days expire?", "failure_mode": "anaphora"}
+    ]
+  },
+  {
+    "conversation_id": "conv_009",
+    "domain": "hr",
+    "turns": [
+      {"role": "user", "text": "What is the 401k match percentage?", "gold_rewrite": "What is the company 401k match percentage?", "failure_mode": "none"},
+      {"role": "user", "text": "When does it vest?", "gold_rewrite": "When does the company 401k match vest?", "failure_mode": "anaphora"},
+      {"role": "user", "text": "Can I change my contribution amount at any time?", "gold_rewrite": "Can I change my 401k contribution amount at any time?", "failure_mode": "topic_shift"}
+    ]
+  },
+  {
+    "conversation_id": "conv_010",
+    "domain": "hr",
+    "turns": [
+      {"role": "user", "text": "Does the company offer tuition reimbursement?", "gold_rewrite": "Does the company offer tuition reimbursement?", "failure_mode": "none"},
+      {"role": "user", "text": "For master's degrees?", "gold_rewrite": "Does the company offer tuition reimbursement for master's degrees?", "failure_mode": "ellipsis"},
+      {"role": "user", "text": "Do I have to stay with the company for a certain time after?", "gold_rewrite": "Is there a retention requirement after receiving tuition reimbursement?", "failure_mode": "topic_continuation"}
+    ]
+  },
+  {
+    "conversation_id": "conv_011",
+    "domain": "it",
+    "turns": [
+      {"role": "user", "text": "How often can I request a laptop upgrade?", "gold_rewrite": "How often can I request a laptop upgrade?", "failure_mode": "none"},
+      {"role": "user", "text": "Can I get a Mac instead of a PC?", "gold_rewrite": "Can I choose a Mac instead of a PC for my laptop upgrade?", "failure_mode": "topic_continuation"},
+      {"role": "user", "text": "What about monitors?", "gold_rewrite": "How often can I request a monitor upgrade?", "failure_mode": "topic_shift"}
+    ]
+  },
+  {
+    "conversation_id": "conv_012",
+    "domain": "it",
+    "turns": [
+      {"role": "user", "text": "How do I install Adobe Creative Cloud?", "gold_rewrite": "How do I install Adobe Creative Cloud?", "failure_mode": "none"},
+      {"role": "user", "text": "Does it require IT approval?", "gold_rewrite": "Does installing Adobe Creative Cloud require IT approval?", "failure_mode": "anaphora"},
+      {"role": "user", "text": "What about a license key?", "gold_rewrite": "How do I get a license key for Adobe Creative Cloud?", "failure_mode": "topic_continuation"}
+    ]
+  },
+  {
+    "conversation_id": "conv_013",
+    "domain": "it",
+    "turns": [
+      {"role": "user", "text": "My VPN keeps disconnecting.", "gold_rewrite": "How do I fix a VPN that keeps disconnecting?", "failure_mode": "none"},
+      {"role": "user", "text": "Is there an alternative one I can use?", "gold_rewrite": "Is there an alternative VPN I can use?", "failure_mode": "anaphora"},
+      {"role": "user", "text": "Who do I call for help with this?", "gold_rewrite": "Who should I call for help with VPN issues?", "failure_mode": "anaphora"}
+    ]
+  },
+  {
+    "conversation_id": "conv_014",
+    "domain": "it",
+    "turns": [
+      {"role": "user", "text": "How do I request access to the production database?", "gold_rewrite": "How do I request access to the production database?", "failure_mode": "none"},
+      {"role": "user", "text": "How long does that usually take?", "gold_rewrite": "How long does it usually take to get production database access?", "failure_mode": "anaphora"},
+      {"role": "user", "text": "And for staging?", "gold_rewrite": "How do I request access to the staging database?", "failure_mode": "ellipsis"}
+    ]
+  },
+  {
+    "conversation_id": "conv_015",
+    "domain": "facilities",
+    "turns": [
+      {"role": "user", "text": "How do I register a visitor for the Seattle office?", "gold_rewrite": "How do I register a visitor for the Seattle office?", "failure_mode": "none"},
+      {"role": "user", "text": "Do they need to show ID?", "gold_rewrite": "Do visitors to the Seattle office need to show ID?", "failure_mode": "anaphora"},
+      {"role": "user", "text": "What if they arrive before I get there?", "gold_rewrite": "What is the procedure if a visitor arrives before their host?", "failure_mode": "topic_continuation"}
+    ]
+  },
+  {
+    "conversation_id": "conv_016",
+    "domain": "facilities",
+    "turns": [
+      {"role": "user", "text": "I lost my office badge.", "gold_rewrite": "What should I do if I lost my office badge?", "failure_mode": "none"},
+      {"role": "user", "text": "Where do I get a new one?", "gold_rewrite": "Where do I get a replacement office badge?", "failure_mode": "anaphora"},
+      {"role": "user", "text": "Does it cost money?", "gold_rewrite": "Is there a fee for replacing a lost office badge?", "failure_mode": "anaphora"}
+    ]
+  },
+  {
+    "conversation_id": "conv_017",
+    "domain": "facilities",
+    "turns": [
+      {"role": "user", "text": "Can I bring my dog to work?", "gold_rewrite": "Can I bring my dog to work?", "failure_mode": "none"},
+      {"role": "user", "text": "Are there restricted areas?", "gold_rewrite": "Are there areas in the office where dogs are restricted?", "failure_mode": "topic_continuation"},
+      {"role": "user", "text": "What about the cafeteria?", "gold_rewrite": "Are dogs allowed in the office cafeteria?", "failure_mode": "ellipsis"}
+    ]
+  },
+  {
+    "conversation_id": "conv_018",
+    "domain": "legal",
+    "turns": [
+      {"role": "user", "text": "How do I get an NDA signed for a new vendor?", "gold_rewrite": "How do I get an NDA signed for a new vendor?", "failure_mode": "none"},
+      {"role": "user", "text": "Can I use their template?", "gold_rewrite": "Can I use a vendor's NDA template instead of ours?", "failure_mode": "anaphora"},
+      {"role": "user", "text": "Who is authorized to sign it?", "gold_rewrite": "Who is authorized to sign an NDA with a vendor?", "failure_mode": "anaphora"}
+    ]
+  },
+  {
+    "conversation_id": "conv_019",
+    "domain": "legal",
+    "turns": [
+      {"role": "user", "text": "What is the policy on accepting gifts from clients?", "gold_rewrite": "What is the policy on accepting gifts from clients?", "failure_mode": "none"},
+      {"role": "user", "text": "Is there a dollar limit?", "gold_rewrite": "Is there a dollar limit on client gifts we can accept?", "failure_mode": "topic_continuation"},
+      {"role": "user", "text": "What if it's during the holidays?", "gold_rewrite": "Are the gift acceptance rules different during the holidays?", "failure_mode": "anaphora"}
+    ]
+  },
+  {
+    "conversation_id": "conv_020",
+    "domain": "legal",
+    "turns": [
+      {"role": "user", "text": "Where can I find the data processing agreement?", "gold_rewrite": "Where can I find the data processing agreement?", "failure_mode": "none"},
+      {"role": "user", "text": "Does it cover GDPR?", "gold_rewrite": "Does the data processing agreement cover GDPR?", "failure_mode": "anaphora"},
+      {"role": "user", "text": "And CCPA?", "gold_rewrite": "Does the data processing agreement cover CCPA?", "failure_mode": "ellipsis"}
+    ]
+  },
+  {
+    "conversation_id": "conv_021",
+    "domain": "finance",
+    "turns": [
+      {"role": "user", "text": "How do I request a corporate credit card?", "gold_rewrite": "How do I request a corporate credit card?", "failure_mode": "none"},
+      {"role": "user", "text": "Who is eligible?", "gold_rewrite": "Who is eligible for a corporate credit card?", "failure_mode": "topic_continuation"},
+      {"role": "user", "text": "What is the monthly limit?", "gold_rewrite": "What is the monthly limit on a corporate credit card?", "failure_mode": "topic_continuation"}
+    ]
+  },
+  {
+    "conversation_id": "conv_022",
+    "domain": "finance",
+    "turns": [
+      {"role": "user", "text": "How do I set up a new vendor in the procurement system?", "gold_rewrite": "How do I set up a new vendor in the procurement system?", "failure_mode": "none"},
+      {"role": "user", "text": "Do I need their W9?", "gold_rewrite": "Do I need a W9 to set up a new vendor?", "failure_mode": "anaphora"},
+      {"role": "user", "text": "Where do I submit that?", "gold_rewrite": "Where do I submit the W9 for a new vendor?", "failure_mode": "anaphora"}
+    ]
+  },
+  {
+    "conversation_id": "conv_023",
+    "domain": "hr",
+    "turns": [
+      {"role": "user", "text": "How do I refer a friend for an open position?", "gold_rewrite": "How do I refer a friend for an open position?", "failure_mode": "none"},
+      {"role": "user", "text": "Is there a referral bonus?", "gold_rewrite": "Is there a referral bonus for open positions?", "failure_mode": "topic_continuation"},
+      {"role": "user", "text": "When does it get paid out?", "gold_rewrite": "When does the referral bonus get paid out?", "failure_mode": "anaphora"}
+    ]
+  },
+  {
+    "conversation_id": "conv_024",
+    "domain": "hr",
+    "turns": [
+      {"role": "user", "text": "What is the bereavement leave policy?", "gold_rewrite": "What is the bereavement leave policy?", "failure_mode": "none"},
+      {"role": "user", "text": "Does it apply to extended family?", "gold_rewrite": "Does bereavement leave apply to extended family?", "failure_mode": "anaphora"},
+      {"role": "user", "text": "How many days?", "gold_rewrite": "How many days of bereavement leave are allowed for extended family?", "failure_mode": "ellipsis"}
+    ]
+  },
+  {
+    "conversation_id": "conv_025",
+    "domain": "facilities",
+    "turns": [
+      {"role": "user", "text": "How do I book a conference room in the Austin office?", "gold_rewrite": "How do I book a conference room in the Austin office?", "failure_mode": "none"},
+      {"role": "user", "text": "Can I book it for a recurring meeting?", "gold_rewrite": "Can I book an Austin conference room for a recurring meeting?", "failure_mode": "anaphora"},
+      {"role": "user", "text": "What if I need catering?", "gold_rewrite": "How do I order catering for an Austin conference room meeting?", "failure_mode": "topic_continuation"}
+    ]
+  },
+  {
+    "conversation_id": "conv_026",
+    "domain": "travel",
+    "turns": [
+      {"role": "user", "text": "Can I use Uber for airport transfers?", "gold_rewrite": "Can I use Uber for airport transfers?", "failure_mode": "none"},
+      {"role": "user", "text": "What about Uber Black?", "gold_rewrite": "Can I use Uber Black for airport transfers?", "failure_mode": "topic_continuation"},
+      {"role": "user", "text": "Do I need to tip them?", "gold_rewrite": "Can I expense tips for Uber airport transfers?", "failure_mode": "anaphora"}
+    ]
+  },
+  {
+    "conversation_id": "conv_027",
+    "domain": "travel",
+    "turns": [
+      {"role": "user", "text": "How do I apply for a corporate travel visa?", "gold_rewrite": "How do I apply for a corporate travel visa?", "failure_mode": "none"},
+      {"role": "user", "text": "Does the company pay for it?", "gold_rewrite": "Does the company pay for corporate travel visas?", "failure_mode": "anaphora"},
+      {"role": "user", "text": "What about passport renewals?", "gold_rewrite": "Does the company pay for passport renewals?", "failure_mode": "topic_shift"}
+    ]
+  },
+  {
+    "conversation_id": "conv_028",
+    "domain": "it",
+    "turns": [
+      {"role": "user", "text": "How do I get a guest Wi-Fi password?", "gold_rewrite": "How do I get a guest Wi-Fi password?", "failure_mode": "none"},
+      {"role": "user", "text": "How long does it stay active?", "gold_rewrite": "How long does the guest Wi-Fi password stay active?", "failure_mode": "anaphora"},
+      {"role": "user", "text": "Can I give it to multiple people?", "gold_rewrite": "Can I give the same guest Wi-Fi password to multiple people?", "failure_mode": "anaphora"}
+    ]
+  },
+  {
+    "conversation_id": "conv_029",
+    "domain": "it",
+    "turns": [
+      {"role": "user", "text": "My Slack account is locked.", "gold_rewrite": "How do I unlock my Slack account?", "failure_mode": "none"},
+      {"role": "user", "text": "Who do I contact?", "gold_rewrite": "Who do I contact to unlock my Slack account?", "failure_mode": "topic_continuation"},
+      {"role": "user", "text": "Can they reset my password too?", "gold_rewrite": "Can the support team reset my Slack password?", "failure_mode": "anaphora"}
+    ]
+  },
+  {
+    "conversation_id": "conv_030",
+    "domain": "legal",
+    "turns": [
+      {"role": "user", "text": "What are our guidelines for open source contributions?", "gold_rewrite": "What are the company guidelines for open source contributions?", "failure_mode": "none"},
+      {"role": "user", "text": "Do I need manager approval?", "gold_rewrite": "Do I need manager approval to make open source contributions?", "failure_mode": "anaphora"},
+      {"role": "user", "text": "What if it's on my personal time?", "gold_rewrite": "Do I need manager approval for open source contributions made on my personal time?", "failure_mode": "topic_continuation"}
+    ]
+  },
+  {
+    "conversation_id": "conv_031",
+    "domain": "expense",
+    "turns": [
+      {"role": "user", "text": "Can I expense a standing desk for my home office?", "gold_rewrite": "Can I expense a standing desk for my home office?", "failure_mode": "none"},
+      {"role": "user", "text": "What is the budget?", "gold_rewrite": "What is the budget for home office standing desks?", "failure_mode": "topic_continuation"},
+      {"role": "user", "text": "And for a chair?", "gold_rewrite": "What is the budget for a home office chair?", "failure_mode": "ellipsis"}
+    ]
+  },
+  {
+    "conversation_id": "conv_032",
+    "domain": "expense",
+    "turns": [
+      {"role": "user", "text": "How do I submit an expense without a receipt?", "gold_rewrite": "How do I submit an expense without a receipt?", "failure_mode": "none"},
+      {"role": "user", "text": "Is there a limit on how many I can do?", "gold_rewrite": "Is there a limit on how many missing receipt expenses I can submit?", "failure_mode": "anaphora"},
+      {"role": "user", "text": "What if it was for a large amount?", "gold_rewrite": "How do I submit a missing receipt for a large expense amount?", "failure_mode": "anaphora"}
+    ]
+  },
+  {
+    "conversation_id": "conv_033",
+    "domain": "hr",
+    "turns": [
+      {"role": "user", "text": "Where do I update my direct deposit information?", "gold_rewrite": "Where do I update my direct deposit information?", "failure_mode": "none"},
+      {"role": "user", "text": "How long does it take to take effect?", "gold_rewrite": "How long does a direct deposit update take to take effect?", "failure_mode": "anaphora"},
+      {"role": "user", "text": "Will I get a paper check in the meantime?", "gold_rewrite": "Will I receive a paper check while my direct deposit update is processing?", "failure_mode": "topic_continuation"}
+    ]
+  },
+  {
+    "conversation_id": "conv_034",
+    "domain": "hr",
+    "turns": [
+      {"role": "user", "text": "How do I request an accommodation for a disability?", "gold_rewrite": "How do I request an accommodation for a disability?", "failure_mode": "none"},
+      {"role": "user", "text": "Do I need a doctor's note?", "gold_rewrite": "Do I need a doctor's note to request a disability accommodation?", "failure_mode": "anaphora"},
+      {"role": "user", "text": "Is it confidential?", "gold_rewrite": "Are disability accommodation requests kept confidential?", "failure_mode": "anaphora"}
+    ]
+  },
+  {
+    "conversation_id": "conv_035",
+    "domain": "it",
+    "turns": [
+      {"role": "user", "text": "How do I share a Google Drive folder externally?", "gold_rewrite": "How do I share a Google Drive folder externally?", "failure_mode": "none"},
+      {"role": "user", "text": "Are there security restrictions on that?", "gold_rewrite": "Are there security restrictions on sharing Google Drive folders externally?", "failure_mode": "anaphora"},
+      {"role": "user", "text": "Can I revoke access later?", "gold_rewrite": "Can I revoke external access to a Google Drive folder later?", "failure_mode": "topic_continuation"}
+    ]
+  },
+  {
+    "conversation_id": "conv_036",
+    "domain": "it",
+    "turns": [
+      {"role": "user", "text": "What do I do if I get a phishing email?", "gold_rewrite": "What do I do if I get a phishing email?", "failure_mode": "none"},
+      {"role": "user", "text": "Should I delete it immediately?", "gold_rewrite": "Should I delete a phishing email immediately?", "failure_mode": "anaphora"},
+      {"role": "user", "text": "What if I accidentally clicked the link?", "gold_rewrite": "What should I do if I accidentally clicked a link in a phishing email?", "failure_mode": "topic_continuation"}
+    ]
+  },
+  {
+    "conversation_id": "conv_037",
+    "domain": "facilities",
+    "turns": [
+      {"role": "user", "text": "How do I request an ergonomic keyboard?", "gold_rewrite": "How do I request an ergonomic keyboard?", "failure_mode": "none"},
+      {"role": "user", "text": "Does it require an evaluation?", "gold_rewrite": "Does an ergonomic keyboard request require a workplace evaluation?", "failure_mode": "anaphora"},
+      {"role": "user", "text": "How long does shipping take?", "gold_rewrite": "How long does shipping take for an ergonomic keyboard?", "failure_mode": "topic_continuation"}
+    ]
+  },
+  {
+    "conversation_id": "conv_038",
+    "domain": "facilities",
+    "turns": [
+      {"role": "user", "text": "Are the office gyms open on weekends?", "gold_rewrite": "Are the office gyms open on weekends?", "failure_mode": "none"},
+      {"role": "user", "text": "Do I need my badge to enter?", "gold_rewrite": "Do I need my badge to enter the office gym on weekends?", "failure_mode": "anaphora"},
+      {"role": "user", "text": "Can I bring a guest?", "gold_rewrite": "Can I bring a guest to the office gym?", "failure_mode": "topic_continuation"}
+    ]
+  },
+  {
+    "conversation_id": "conv_039",
+    "domain": "legal",
+    "turns": [
+      {"role": "user", "text": "How long do we have to retain customer emails?", "gold_rewrite": "How long are we required to retain customer emails?", "failure_mode": "none"},
+      {"role": "user", "text": "Does that apply to chat logs too?", "gold_rewrite": "Does the retention policy apply to customer chat logs?", "failure_mode": "anaphora"},
+      {"role": "user", "text": "What about internal communications?", "gold_rewrite": "How long do we have to retain internal communications?", "failure_mode": "topic_shift"}
+    ]
+  },
+  {
+    "conversation_id": "conv_040",
+    "domain": "legal",
+    "turns": [
+      {"role": "user", "text": "Can I sign a vendor contract on behalf of the company?", "gold_rewrite": "Can I sign a vendor contract on behalf of the company?", "failure_mode": "none"},
+      {"role": "user", "text": "What is the approval threshold?", "gold_rewrite": "What is the approval threshold for signing vendor contracts?", "failure_mode": "topic_continuation"},
+      {"role": "user", "text": "Who do I send it to for review?", "gold_rewrite": "Who should review a vendor contract before I sign it?", "failure_mode": "anaphora"}
+    ]
+  },
+  {
+    "conversation_id": "conv_041",
+    "domain": "finance",
+    "turns": [
+      {"role": "user", "text": "When are expense reports processed?", "gold_rewrite": "When are expense reports processed?", "failure_mode": "none"},
+      {"role": "user", "text": "Is it weekly or biweekly?", "gold_rewrite": "Are expense reports processed weekly or biweekly?", "failure_mode": "anaphora"},
+      {"role": "user", "text": "What day of the week do they hit my bank account?", "gold_rewrite": "What day of the week do expense reimbursements hit my bank account?", "failure_mode": "anaphora"}
+    ]
+  },
+  {
+    "conversation_id": "conv_042",
+    "domain": "finance",
+    "turns": [
+      {"role": "user", "text": "How do I code an expense for a team building event?", "gold_rewrite": "How do I code an expense for a team building event?", "failure_mode": "none"},
+      {"role": "user", "text": "Is there a specific project code?", "gold_rewrite": "Is there a specific project code for team building expenses?", "failure_mode": "topic_continuation"},
+      {"role": "user", "text": "What if it exceeded the budget?", "gold_rewrite": "How do I code a team building expense if it exceeded the budget?", "failure_mode": "anaphora"}
+    ]
+  },
+  {
+    "conversation_id": "conv_043",
+    "domain": "hr",
+    "turns": [
+      {"role": "user", "text": "What is the process for an internal transfer?", "gold_rewrite": "What is the process for an internal transfer?", "failure_mode": "none"},
+      {"role": "user", "text": "Do I have to tell my current manager before I apply?", "gold_rewrite": "Do I have to inform my current manager before applying for an internal transfer?", "failure_mode": "anaphora"},
+      {"role": "user", "text": "How long must I be in my current role?", "gold_rewrite": "How long must I be in my current role before applying for an internal transfer?", "failure_mode": "topic_continuation"}
+    ]
+  },
+  {
+    "conversation_id": "conv_044",
+    "domain": "hr",
+    "turns": [
+      {"role": "user", "text": "Can I work remotely from another country?", "gold_rewrite": "Can I work remotely from another country?", "failure_mode": "none"},
+      {"role": "user", "text": "For how long?", "gold_rewrite": "For how long can I work remotely from another country?", "failure_mode": "ellipsis"},
+      {"role": "user", "text": "Does it impact my taxes?", "gold_rewrite": "Does working remotely from another country impact my taxes?", "failure_mode": "anaphora"}
+    ]
+  },
+  {
+    "conversation_id": "conv_045",
+    "domain": "it",
+    "turns": [
+      {"role": "user", "text": "How do I request a new software license?", "gold_rewrite": "How do I request a new software license?", "failure_mode": "none"},
+      {"role": "user", "text": "Does my manager have to approve it?", "gold_rewrite": "Does my manager have to approve a new software license request?", "failure_mode": "anaphora"},
+      {"role": "user", "text": "What if it's over $500?", "gold_rewrite": "What is the approval process for a software license request over $500?", "failure_mode": "topic_continuation"}
+    ]
+  },
+  {
+    "conversation_id": "conv_046",
+    "domain": "it",
+    "turns": [
+      {"role": "user", "text": "How do I connect my phone to the office email?", "gold_rewrite": "How do I connect my phone to the office email?", "failure_mode": "none"},
+      {"role": "user", "text": "Do I need to install a special app?", "gold_rewrite": "Do I need to install a special app to connect my phone to office email?", "failure_mode": "anaphora"},
+      {"role": "user", "text": "Will IT be able to wipe my phone?", "gold_rewrite": "Will IT be able to remote wipe my personal phone if I connect office email?", "failure_mode": "topic_continuation"}
+    ]
+  },
+  {
+    "conversation_id": "conv_047",
+    "domain": "facilities",
+    "turns": [
+      {"role": "user", "text": "How do I report a broken chair?", "gold_rewrite": "How do I report a broken chair?", "failure_mode": "none"},
+      {"role": "user", "text": "Should I submit a ticket?", "gold_rewrite": "Should I submit a ticket to report a broken chair?", "failure_mode": "anaphora"},
+      {"role": "user", "text": "How long until I get a replacement?", "gold_rewrite": "How long does it take to get a replacement for a broken chair?", "failure_mode": "topic_continuation"}
+    ]
+  },
+  {
+    "conversation_id": "conv_048",
+    "domain": "facilities",
+    "turns": [
+      {"role": "user", "text": "Where do I park at the Chicago office?", "gold_rewrite": "Where do I park at the Chicago office?", "failure_mode": "none"},
+      {"role": "user", "text": "Do I need a permit?", "gold_rewrite": "Do I need a permit to park at the Chicago office?", "failure_mode": "anaphora"},
+      {"role": "user", "text": "Is it free for employees?", "gold_rewrite": "Is parking at the Chicago office free for employees?", "failure_mode": "anaphora"}
+    ]
+  },
+  {
+    "conversation_id": "conv_049",
+    "domain": "legal",
+    "turns": [
+      {"role": "user", "text": "What is the insider trading policy?", "gold_rewrite": "What is the insider trading policy?", "failure_mode": "none"},
+      {"role": "user", "text": "When are the blackout periods?", "gold_rewrite": "When are the insider trading blackout periods?", "failure_mode": "topic_continuation"},
+      {"role": "user", "text": "Does this apply to my spouse?", "gold_rewrite": "Does the insider trading policy apply to my spouse?", "failure_mode": "anaphora"}
+    ]
+  },
+  {
+    "conversation_id": "conv_050",
+    "domain": "finance",
+    "turns": [
+      {"role": "user", "text": "How do I get an invoice paid?", "gold_rewrite": "How do I get an invoice paid?", "failure_mode": "none"},
+      {"role": "user", "text": "What are the standard payment terms?", "gold_rewrite": "What are the standard payment terms for invoices?", "failure_mode": "topic_continuation"},
+      {"role": "user", "text": "Can I expedite it?", "gold_rewrite": "Can I expedite an invoice payment?", "failure_mode": "anaphora"}
+    ]
+  }
+]
