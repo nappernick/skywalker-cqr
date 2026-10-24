@@ -39,18 +39,18 @@ const sigmoid = (z: number): number => 1 / (1 + Math.exp(-z));
 
 /** Psychology and force constants, set by scripts/calibrate.ts against all-group targets. */
 export const TUNE = {
-  aOffset: 0.036,
-  aMax: 0.785,
-  fearW: 0.485,
-  despAtro: 0.291,
-  despBrut: 0.4,
-  growthThr: 0.252,
-  suppW: 0.46,
-  garScale: 3.2,
-  dBase: 0.099,
-  rise: 0.6,
-  surge: 2,
-  crush: 8,
+  aOffset: 0.098,
+  aMax: 0.5,
+  fearW: 0.318,
+  despAtro: 0.516,
+  despBrut: 0.348,
+  growthThr: 0.261,
+  suppW: 0.514,
+  garScale: 4.453,
+  dBase: 0.285,
+  rise: 1.086,
+  surge: 0.805,
+  crush: 4.825,
 };
 
 const FACTIONS: FactionId[] = ["ss", "party", "wehr", "tech", "goring"];
