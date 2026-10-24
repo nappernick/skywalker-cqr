@@ -1,0 +1,661 @@
+<title>Fortress Europe Model</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+/* Layout: a staff map-room ledger. Controls rail beside a results column; stacks to one column on phones. */
+:root {
+  --paper: #e9ece7;
+  --surface: #f5f6f2;
+  --ink: #1b2128;
+  --muted: #59636d;
+  --rule: #c5cbc4;
+  --accent: #2b5874;
+  --reich: #66704f;
+  --resist: #a8701a;
+  --danger: #a23a2e;
+  --war: #6f5594;
+  --band: rgba(43, 88, 116, 0.16);
+  --font-display: "Big Shoulders Display", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #111418; --surface: #191e24; --ink: #e2e6e9; --muted: #98a3ad; --rule: #2b333b;
+    --accent: #7eb0cf; --reich: #a9b08a; --resist: #e2a64a; --danger: #e47566; --war: #b59cdb;
+    --band: rgba(126, 176, 207, 0.18); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #111418; --surface: #191e24; --ink: #e2e6e9; --muted: #98a3ad; --rule: #2b333b;
+  --accent: #7eb0cf; --reich: #a9b08a; --resist: #e2a64a; --danger: #e47566; --war: #b59cdb;
+  --band: rgba(126, 176, 207, 0.18); color-scheme: dark;
+}
+body { background: var(--paper); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 56px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 800; letter-spacing: 0.01em; text-wrap: balance; margin: 0; line-height: 1.05; }
+h1 { font-size: clamp(2.4rem, 6vw, 3.8rem); text-transform: uppercase; }
+h2 { font-size: 1.55rem; text-transform: uppercase; }
+h3 { font-size: 1.15rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+p { margin: 0; }
+a { color: var(--accent); }
+.eyebrow { font-family: var(--font-data); font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+header.top { display: grid; gap: 10px; padding-bottom: 20px; border-bottom: 2px solid var(--ink); margin-bottom: 22px; }
+header.top .lede { max-width: 66ch; color: var(--muted); }
+.premise { font-family: var(--font-data); font-size: 0.78rem; color: var(--ink); display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.premise span::before { content: "▸ "; color: var(--accent); }
+
+.layout { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 28px; align-items: start; }
+@media (max-width: 880px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+
+.rail { display: grid; gap: 18px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
+@media (max-width: 880px) { .rail { position: static; } }
+.panel { background: var(--surface); border: 1px solid var(--rule); padding: 16px; display: grid; gap: 14px; min-width: 0; }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-family: var(--font-data); font-size: 0.74rem; border: 1px solid var(--rule); background: transparent; color: var(--ink); padding: 6px 9px; cursor: pointer; border-radius: 2px; }
+.chip:hover { border-color: var(--accent); }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.chip:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ctl { display: grid; gap: 4px; }
+.ctl-head { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.ctl label { font-weight: 600; font-size: 0.92rem; }
+.ctl output { font-family: var(--font-data); font-size: 0.8rem; color: var(--accent); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ctl .hint { font-size: 0.78rem; color: var(--muted); line-height: 1.35; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.runrow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.btn { font-family: var(--font-display); font-weight: 600; font-size: 1rem; letter-spacing: 0.06em; text-transform: uppercase; background: var(--ink); color: var(--paper); border: 0; padding: 9px 16px; cursor: pointer; border-radius: 2px; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--rule); }
+.status { font-family: var(--font-data); font-size: 0.74rem; color: var(--muted); }
+
+main.results { display: grid; gap: 22px; min-width: 0; }
+.verdict { display: grid; gap: 12px; }
+.verdict .big { font-family: var(--font-display); font-weight: 800; font-size: clamp(1.6rem, 3.6vw, 2.3rem); line-height: 1.1; text-wrap: balance; }
+.verdict .big em { font-style: normal; color: var(--accent); }
+.stack { display: flex; height: 34px; border: 1px solid var(--rule); overflow: hidden; }
+.stack div { height: 100%; transition: width 0.4s ease; }
+.legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px 16px; }
+.legend .item { display: grid; grid-template-columns: 12px 1fr auto; gap: 8px; align-items: baseline; font-size: 0.86rem; }
+.legend .sw { width: 12px; height: 12px; align-self: center; }
+.legend .pct { font-family: var(--font-data); font-variant-numeric: tabular-nums; font-size: 0.82rem; }
+.legend .desc { grid-column: 2 / 4; color: var(--muted); font-size: 0.76rem; line-height: 1.3; }
+.o-hegemony { background: var(--reich); } .o-fraying { background: var(--resist); } .o-rollback { background: var(--accent); }
+.o-collapse { background: var(--danger); } .o-uswar { background: var(--war); }
+
+.chart { width: 100%; overflow-x: auto; }
+.chart svg { display: block; width: 100%; height: auto; min-width: 300px; }
+svg text { font-family: var(--font-data); font-size: 11px; fill: var(--muted); }
+svg .grid { stroke: var(--rule); stroke-width: 1; }
+svg .axis { stroke: var(--muted); stroke-width: 1; }
+svg .band { fill: var(--band); stroke: none; }
+svg .line { fill: none; stroke: var(--accent); stroke-width: 2.25; }
+svg .line.e { stroke: var(--reich); stroke-dasharray: 5 4; stroke-width: 1.75; }
+svg .dot { fill: var(--accent); stroke: none; }
+svg .lab { fill: var(--ink); font-size: 11.5px; }
+.chart-note { font-size: 0.8rem; color: var(--muted); }
+
+.multiples { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.mini { border: 1px solid var(--rule); padding: 10px 12px; display: grid; gap: 6px; min-width: 0; background: var(--paper); }
+.mini .row { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.mini .nm { font-weight: 600; font-size: 0.9rem; }
+.pill { font-family: var(--font-data); font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 6px; border-radius: 2px; white-space: nowrap; border: 1px solid currentColor; }
+.pill.held { color: var(--reich); } .pill.contested { color: var(--resist); } .pill.lost { color: var(--danger); }
+.mini svg { width: 100%; height: 54px; display: block; }
+.mini svg .r { fill: none; stroke: var(--resist); stroke-width: 2; }
+.mini svg .rb { fill: var(--resist); opacity: 0.16; }
+.mini svg .thr { stroke: var(--danger); stroke-dasharray: 3 3; stroke-width: 1; }
+.mini .meta { font-family: var(--font-data); font-size: 0.7rem; color: var(--muted); }
+
+.chron-head { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: end; }
+.chron { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; max-height: 440px; overflow-y: auto; border-top: 1px solid var(--rule); }
+.chron li { display: grid; grid-template-columns: 52px 1fr; gap: 12px; padding: 9px 2px; border-bottom: 1px solid var(--rule); font-size: 0.9rem; }
+.chron .yr { font-family: var(--font-data); font-variant-numeric: tabular-nums; color: var(--muted); font-size: 0.82rem; padding-top: 1px; }
+.chron li.k-regime .yr { color: var(--war); } .chron li.k-loss .yr { color: var(--danger); } .chron li.k-gain .yr { color: var(--reich); } .chron li.k-nuke .yr { color: var(--accent); }
+.chron li.k-end { font-weight: 600; }
+
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.two ul { margin: 0; padding-left: 18px; display: grid; gap: 8px; font-size: 0.92rem; }
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.86rem; min-width: 620px; }
+th, td { text-align: left; padding: 8px 10px 8px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-family: var(--font-data); font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+td.num { font-family: var(--font-data); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.prose { max-width: 70ch; display: grid; gap: 10px; font-size: 0.95rem; }
+.anchors { margin: 0; padding-left: 18px; display: grid; gap: 7px; font-size: 0.88rem; max-width: 80ch; }
+.caveat { border-left: 3px solid var(--danger); padding: 6px 0 6px 12px; font-size: 0.9rem; color: var(--ink); max-width: 72ch; }
+@media (prefers-reduced-motion: reduce) { .stack div { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">Counterfactual simulation · 1941–1970 · Monte Carlo</div>
+    <h1>Fortress Europe Model</h1>
+    <p class="lede">Could Germany have held a conquered Europe? Each run plays out thirty years of occupation, resistance, succession politics, economics and the nuclear age, with randomness at every step. Change the policies and the outside world, and see how the odds move.</p>
+    <div class="premise">
+      <span>Britain signs a non-surrender peace in 1940</span>
+      <span>The USSR does not move its industry east</span>
+      <span>The US stays out of the war</span>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="rail">
+      <section class="panel" aria-labelledby="presets-h">
+        <h3 id="presets-h">Scenarios</h3>
+        <div class="presets" id="presets"></div>
+      </section>
+      <section class="panel" aria-labelledby="levers-h">
+        <h3 id="levers-h">Levers</h3>
+        <div id="controls"></div>
+        <div class="runrow">
+          <button class="btn" id="run" type="button">Run 400</button>
+          <button class="btn ghost" id="reseed" type="button">New seed</button>
+          <span class="status" id="status"></span>
+        </div>
+      </section>
+    </aside>
+
+    <main class="results">
+      <section class="panel verdict" aria-live="polite">
+        <div class="eyebrow">Where Europe stands in 1970</div>
+        <p class="big" id="headline">Running…</p>
+        <div class="stack" id="stack" role="img" aria-label="Distribution of outcomes"></div>
+        <div class="legend" id="legend"></div>
+      </section>
+
+      <section class="panel">
+        <div class="chron-head">
+          <div>
+            <div class="eyebrow">Median run with 10th–90th percentile band</div>
+            <h2>Reich control of Europe</h2>
+          </div>
+        </div>
+        <div class="chart" id="controlChart"></div>
+        <p class="chart-note">Control index weights each region by its economic value and discounts it by resistance strength. 100 means every region quiet and held. Dashed line: German economy, 1941 = 100.</p>
+      </section>
+
+      <section class="panel">
+        <div>
+          <div class="eyebrow">Median resistance strength by region</div>
+          <h2>Where it breaks</h2>
+        </div>
+        <div class="multiples" id="multiples"></div>
+        <p class="chart-note">Red dashed line marks the point where a movement holds territory, as Tito's partisans did in 1943–44. Status shows the share of runs where resistance takes the region before 1970. Runs that end in regime collapse or war count only the regions lost before the end.</p>
+      </section>
+
+      <section class="panel">
+        <div class="chron-head">
+          <div>
+            <div class="eyebrow">One run, told year by year</div>
+            <h2>Chronicle</h2>
+          </div>
+          <div class="presets" id="chronFilter"></div>
+        </div>
+        <ol class="chron" id="chron"></ol>
+      </section>
+
+      <section class="panel">
+        <div>
+          <div class="eyebrow">Logistics of resistance</div>
+          <h2>How the resistance gets fed</h2>
+        </div>
+        <p class="prose">The single strongest finding, in history and in this model, is that resistance movements live or die on outside supply. Tito's partisans grew to over 800,000 with Allied help. The Ukrainian and Baltic insurgents after 1944 had none, and Soviet deportations broke them by 1953. In a world where Britain made peace, every supply line runs through someone willing to defy Germany quietly.</p>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>Region</th><th>Who could supply it</th><th>Route</th><th>Real-world analog</th><th>Access</th></tr></thead>
+            <tbody id="supplyTable"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div>
+          <div class="eyebrow">Mechanisms</div>
+          <h2>How it wins, how it loses</h2>
+        </div>
+        <div class="two">
+          <div>
+            <h3>The resistance wins when</h3>
+            <ul>
+              <li><strong>Supply keeps flowing.</strong> Weapons, radios and money from an outside sponsor turn angry villages into armies. Before Allied drops, French maquis groups had arms for only a small fraction of their members.</li>
+              <li><strong>Terrain shelters it.</strong> Mountains, forests and marshes let fighters survive sweeps, as in Yugoslavia and Belarus.</li>
+              <li><strong>Brutality recruits for it.</strong> Reprisals and starvation policies push neutral people into the woods faster than security forces can kill them.</li>
+              <li><strong>Berlin fractures.</strong> A succession fight after Hitler, or a failing economy, cuts garrisons and opens space for uprisings and satellite defections.</li>
+            </ul>
+          </div>
+          <div>
+            <h3>The resistance loses when</h3>
+            <ul>
+              <li><strong>It is isolated.</strong> With no sponsor and no sanctuary, a determined occupier can grind any movement down. Postwar Soviet counterinsurgency proved this.</li>
+              <li><strong>The support base is destroyed.</strong> Mass deportation and depopulation remove the villages that feed fighters. It is monstrous, and it works when nothing replaces the losses.</li>
+              <li><strong>Collaboration pays.</strong> Prosperity and local autonomy split populations and supply informers, as Vichy France did for years.</li>
+              <li><strong>The occupier stays strong and united.</strong> A growing economy funds garrisons, aircraft and informer networks.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div>
+          <div class="eyebrow">What the model assumes</div>
+          <h2>Calibration and limits</h2>
+        </div>
+        <p class="caveat">This is a reasoning tool, not a prediction. The equations are simple and every coefficient is a judgment calibrated against the historical anchors below, not fitted to data. Use it to see which forces matter and how they interact, not to read off probabilities.</p>
+        <div class="prose">
+          <p>Each year, every region's grievance is set by occupation brutality, economic extraction, accumulated atrocity memory, local prosperity and collaboration incentives. Resistance grows where grievance is high, faster in rough terrain, and much faster with outside supply. Germany spreads its security forces toward the worst regions, and those forces suppress resistance less effectively in mountains and forests. When a movement holds territory for two straight years, the region is lost. Satellites defect when disaffection is high and an outside force or a weak Berlin gives them an opening.</p>
+          <p>Hitler's death is drawn each year with rising odds, reflecting his age and failing health. His successor is drawn at random from the factions of the time, and the result can harden or soften policy and shake regime cohesion. If cohesion collapses, the empire breaks apart from within. A surviving Soviet state behind the Urals rebuilds, supplies partisans in the east and pins down German divisions. The US may build an atomic bomb, though without a war there is no guarantee of a crash program, so the default puts it in the late 1950s with wide uncertainty. Germany may build one too.</p>
+        </div>
+        <h3>Historical anchors</h3>
+        <ol class="anchors">
+          <li>The <a href="https://en.wikipedia.org/wiki/Hunger_Plan" target="_blank" rel="noopener">Hunger Plan</a> envisaged starving tens of millions of Soviet citizens. It was partly carried out, and historians estimate it killed about 4.2 million people in 1941–44.</li>
+          <li>France's occupation payments to Germany ran from 19.5% of GDP in 1940 to 55.5% in 1943 (<a href="https://conference.nber.org/confer/2006/si2006/dae/white.pdf" target="_blank" rel="noopener">Oosterlinck and White, NBER</a>).</li>
+          <li>In August 1944 about 7.6 million foreign workers and prisoners of war were working inside the Reich (<a href="https://www.encyclopedia.com/religion/encyclopedias-almanacs-transcripts-and-maps/forced-slave-labor" target="_blank" rel="noopener">Encyclopedia of the Holocaust</a>).</li>
+          <li><a href="https://en.wikipedia.org/wiki/Yugoslav_Partisans" target="_blank" rel="noopener">Yugoslav Partisans</a> armed themselves mostly from the enemy until British supplies arrived in quantity in 1944, then grew past 800,000 by April 1945.</li>
+          <li><a href="https://en.wikipedia.org/wiki/Soviet_partisans" target="_blank" rel="noopener">Soviet partisans</a> numbered over 90,000 by the end of 1941 and controlled about 60% of Belarus by the end of 1943, supplied by a dedicated air bridge from Moscow.</li>
+          <li>The Ukrainian insurgency had no outside support. Between 1944 and 1953 about 153,000 Ukrainians were killed and about 204,000 deported, and the movement was crushed (<a href="https://coffeeordie.com/forgotten-freedom-fighters-russia/" target="_blank" rel="noopener">source</a>). Lithuania's Forest Brothers held out until 1953 with no sanctuary or supply (<a href="https://historynet.com/forest-brothers-soviets/" target="_blank" rel="noopener">HistoryNet</a>).</li>
+          <li>French <a href="https://en.wikipedia.org/wiki/Maquis_(World_War_II)" target="_blank" rel="noopener">maquis</a> grew from 25,000–40,000 in autumn 1943 to about 100,000 by June 1944. In November 1943 only 4,000–5,000 of 30,000 maquisards in the former Free Zone were armed (<a href="https://warhistory.org/de/article/skyfall-or-guerrilla-iii?amp=1" target="_blank" rel="noopener">source</a>).</li>
+          <li>Göring was publicly designated Hitler's successor in September 1939 (<a href="https://en.wikipedia.org/wiki/Hermann_G%C3%B6ring" target="_blank" rel="noopener">source</a>). Historians have argued that Hitler had Parkinson's disease, and his health was declining by the mid-1940s.</li>
+        </ol>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+// ===MODEL START===
+const REGIONS = [
+  { id: "west", name: "France & Low Countries", terrain: 0.30, access: 0.65, bm: 0.45, value: 0.30, base: 0.42, r0: 0.03,
+    who: "US, British and Free French networks; smugglers via Spain and Switzerland", route: "Air drops, Channel boats, Pyrenees and Swiss border", analog: "Maquis and SOE, 1943–44" },
+  { id: "nordic", name: "Norway & Denmark", terrain: 0.55, access: 0.55, bm: 0.40, value: 0.06, base: 0.38, r0: 0.03,
+    who: "Exiles in Sweden and Britain", route: "Swedish border, North Sea fishing boats", analog: "Milorg and the Shetland Bus" },
+  { id: "poland", name: "Poland & Bohemia", terrain: 0.40, access: 0.18, bm: 1.00, value: 0.14, base: 0.66, r0: 0.08,
+    who: "Exile government, Soviet rump state if it survives", route: "Long-range air drops only; overland from the east", analog: "Home Army, 1942–44" },
+  { id: "balkans", name: "Yugoslavia & Greece", terrain: 0.90, access: 0.45, bm: 0.80, value: 0.05, base: 0.60, r0: 0.12,
+    who: "Any sponsor with ships or aircraft in the Mediterranean", route: "Adriatic coast, Turkish border, mountain airstrips", analog: "Tito's Partisans, Greek ELAS" },
+  { id: "east", name: "Occupied Soviet West", terrain: 0.60, access: 0.10, bm: 1.00, value: 0.25, base: 0.55, r0: 0.10,
+    who: "The Soviet rump state; almost no one if it collapses", route: "Air bridge and infiltration across the front line", analog: "Belarus partisans vs. postwar UPA" },
+  { id: "sat", name: "Allied satellites", terrain: 0.40, access: 0.35, bm: 0.15, value: 0.20, base: 0.30, r0: 0.02, satellite: true,
+    who: "Western and Soviet diplomacy, domestic opposition", route: "Defection of governments and armies", analog: "Italy 1943, Romania 1944" }
+];
+
+const DEFAULTS = { brutality: 0.90, extraction: 0.75, collab: 0.20, external: 0.35, rump: 0.50, pragmatism: 0.30, bombYear: 1958, runs: 400, seed: 1940 };
+const START = 1941, END = 1970;
+
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function gauss(rng) { let u = 0, v = 0; while (u === 0) u = rng(); while (v === 0) v = rng(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
+
+const SUCCESSORS = {
+  pragmatist: { label: "a military-technocratic faction", brut: -0.35, col: 0.35, extr: -0.15, coh: 0.05,
+    note: "Generals and economic managers push aside the SS. Terror is scaled back and satellites get more autonomy." },
+  himmler: { label: "Himmler and the SS", brut: 0.10, col: -0.05, extr: 0.0, coh: -0.05,
+    note: "The SS state takes over. Racial resettlement in the East accelerates." },
+  goring: { label: "Göring, the designated heir", brut: -0.05, col: 0.05, extr: 0.08, coh: -0.12,
+    note: "Göring inherits by decree but rules through corruption and rival fiefdoms." },
+  bormann: { label: "Bormann and the Party apparatus", brut: 0.05, col: 0.0, extr: 0.03, coh: -0.08,
+    note: "The Party machine wins the palace fight and governs by Gauleiter." }
+};
+
+function simulate(p, rng, keepLog) {
+  const log = [];
+  const say = (y, kind, text) => { if (keepLog) log.push({ y, kind, text }); };
+  let E = 100, coh = 0.82;
+  let brut = p.brutality, extr = p.extraction, col = p.collab;
+  let hitlerAlive = true, leader = "Hitler";
+  let rumpAlive = rng() < p.rump;
+  let K = rumpAlive ? 0.28 : 0;
+  // Without a war, a US crash program is not guaranteed: wide uncertainty, and years past 1970 mean no bomb in the window.
+  const usBomb = Math.round(p.bombYear + gauss(rng) * 3);
+  let deBomb = null, usWar = false, outcome = null, endYear = END;
+  const R = REGIONS.map(r => clamp(r.r0 + (r.id === "east" && rumpAlive ? 0.06 : 0), 0, 1));
+  const atro = REGIONS.map(() => 0);
+  const cap = REGIONS.map(() => 1);
+  const lost = REGIONS.map(() => false);
+  const streak = REGIONS.map(() => 0);
+  const lostYear = REGIONS.map(() => null);
+  const series = { control: [], E: [], R: REGIONS.map(() => []), coh: [] };
+
+  say(1941, "start", rumpAlive
+    ? "The Soviet state survives the 1941–42 campaigns as a rump behind the Volga and Urals. The eastern front never fully closes."
+    : "The Soviet state collapses in 1942. Without its western factories, resistance in the east has no sponsor beyond scattered remnants.");
+
+  for (let y = START; y <= END; y++) {
+    // 1. Succession
+    if (hitlerAlive) {
+      const pd = y < 1944 ? 0.01 : Math.min(0.35, 0.04 + (y - 1944) * 0.02);
+      if (rng() < pd) {
+        hitlerAlive = false;
+        const r = rng();
+        let key;
+        if (r < p.pragmatism) key = "pragmatist";
+        else { const q = (r - p.pragmatism) / (1 - p.pragmatism || 1); key = q < 0.42 ? "himmler" : q < 0.72 ? "goring" : "bormann"; }
+        const s = SUCCESSORS[key];
+        leader = s.label;
+        brut = clamp(brut + s.brut, 0, 1); col = clamp(col + s.col, 0, 1); extr = clamp(extr + s.extr, 0, 1);
+        const shock = 0.15 + rng() * 0.3;
+        coh = clamp(coh - shock + s.coh, 0, 1);
+        say(y, "regime", `Hitler dies at ${y - 1889}. After a ${shock > 0.32 ? "bitter" : "short"} succession struggle, power passes to ${s.label}. ${s.note}`);
+      }
+    }
+
+    // 2. Outside world
+    const usHasBomb = y >= usBomb;
+    if (y === usBomb) say(y, "nuke", deBomb ? "The United States tests an atomic bomb, years after Germany did." : "The United States tests an atomic bomb. Washington's covert support for European resistance grows bolder.");
+    const ext = clamp(p.external * (usHasBomb ? 1.3 : 1) + (deBomb ? -0.05 : 0), 0, 1);
+    if (!deBomb && y >= 1947) {
+      const pde = 0.035 * (E / 120) * coh;
+      if (rng() < pde) { deBomb = y; say(y, "nuke", usHasBomb ? "Germany tests its own atomic bomb. A nuclear standoff with the US settles in." : "Germany tests an atomic bomb before the United States. Outside powers grow far more cautious about arming resistance."); }
+    }
+
+    // 3. Soviet rump
+    let frontDrain = 0;
+    if (rumpAlive) {
+      K = clamp(K + 0.035 + 0.05 * ext - 0.03 * (E / 100) * coh + gauss(rng) * 0.03, 0, 1);
+      frontDrain = 0.12 + 0.25 * K;
+      if (K < 0.1 && rng() < 0.35) { rumpAlive = false; K = 0; say(y, "gain", "The Soviet rump state disintegrates. Eastern partisans lose their only sponsor and air bridge."); }
+      else if (K > 0.7 && !lost[4] && rng() < 0.2) { R[4] = clamp(R[4] + 0.18, 0, 1); K = clamp(K - 0.3, 0, 1); say(y, "loss", "A rebuilt Red Army launches an offensive from beyond the Urals and links up with partisans in the occupied east. It is thrown back, but the region is in flames."); }
+    }
+
+    // 4. Security forces
+    const G = (E / 100) * (1 - frontDrain) * (0.85 + 0.25 * coh);
+    let wsum = 0; const w = REGIONS.map((r, i) => { const v = (R[i] + 0.05) * (0.5 + r.value) * (r.satellite ? 0.35 : 1); wsum += v; return v; });
+
+    // 5. Regions
+    let newLosses = 0, newGains = 0;
+    REGIONS.forEach((r, i) => {
+      const gar = G * w[i] / wsum;
+      const prosperity = clamp(((E - 80) / 100) * 0.6 + (1 - extr) * 0.5 - brut * r.bm * 0.4, 0, 1);
+      const satPull = r.satellite ? (E / 100 - 1) * 0.25 + (coh - 0.5) * 0.3 : 0;
+      const griev = clamp(r.base + brut * r.bm * 0.45 + extr * 0.22 + atro[i] * 0.25 - prosperity * 0.35 - col * 0.32 * (1 - 0.4 * r.bm) - satPull, 0, 1);
+      let supply = ext * r.access * (deBomb && !usHasBomb ? 0.5 : 1);
+      if (r.id === "east" && rumpAlive) supply = Math.max(supply, 0.35 + 0.5 * K);
+      if (r.id === "poland" && rumpAlive) supply = supply + 0.15 * K;
+      supply = clamp(supply * (1 - clamp(0.22 * E / 100, 0, 0.45)), 0, 1);
+
+      const growth = 0.6 * R[i] * (1 - R[i] / cap[i]) * (griev - 0.33) * (0.6 + 0.6 * r.terrain)
+        + 0.07 * supply * griev + 0.012 * griev;
+      const suppression = gar * 0.32 * (1 - 0.55 * r.terrain) * (0.75 + 0.5 * brut) * Math.min(1, R[i] * 4) * (1 - 0.5 * supply);
+      atro[i] = clamp(atro[i] + brut * r.bm * (R[i] > 0.1 ? 0.07 : 0.025) - 0.03, 0, 1);
+      if (R[i] > 0.12) cap[i] = clamp(cap[i] - brut * r.bm * 0.035 * (1 - supply) * (1 - r.terrain * 0.4), 0.25, 1);
+      else cap[i] = clamp(cap[i] + 0.01, 0.25, 1);
+      R[i] = clamp(R[i] + growth - suppression + gauss(rng) * 0.018, 0, 1);
+
+      if (r.satellite) {
+        if (!lost[i] && R[i] > 0.55 && (ext > 0.25 || (rumpAlive && K > 0.5) || coh < 0.38)) {
+          lost[i] = true; lostYear[i] = lostYear[i] || y; newLosses++;
+          say(y, "loss", "One of Germany's allies breaks away. Its government switches sides and its army turns on the German garrisons, as Romania did in 1944.");
+        }
+      } else {
+        streak[i] = R[i] >= 0.6 ? streak[i] + 1 : 0;
+        if (!lost[i] && streak[i] >= 2) {
+          lost[i] = true; lostYear[i] = lostYear[i] || y; newLosses++;
+          say(y, "loss", `${r.name}: resistance forces now hold and govern territory. Germany has effectively lost the region.${supply > 0.3 ? " Outside supply made the difference." : ""}`);
+        } else if (lost[i] && R[i] < 0.35) {
+          lost[i] = false; newGains++;
+          say(y, "gain", `${r.name}: German forces retake the region after a long counterinsurgency campaign${brut > 0.7 ? " marked by mass reprisals and deportations" : ""}.`);
+        }
+      }
+    });
+
+    // 6. Economy
+    let held = 0, disrupt = 0;
+    REGIONS.forEach((r, i) => { held += r.value * (lost[i] ? 0 : 1 - 0.5 * R[i]); disrupt += r.value * R[i] * 0.11; });
+    const growth = 0.036 * held + 0.02 * extr * held - disrupt - 0.03 * frontDrain - brut * 0.008 + 0.012 - (coh < 0.4 ? 0.02 : 0) + gauss(rng) * 0.012;
+    E = Math.max(30, E * (1 + growth));
+
+    // 7. Cohesion
+    const lostCount = lost.filter(Boolean).length;
+    coh = clamp(coh + 0.035 * (1 - coh) + growth * 0.7 - newLosses * 0.07 + newGains * 0.03 - lostCount * 0.006 + gauss(rng) * 0.015, 0, 1);
+
+    // 8. US war risk (only while the US alone holds the bomb)
+    if (usHasBomb && !deBomb && !usWar) {
+      const pw = 0.004 * brut + 0.02 * p.external * brut;
+      if (rng() < pw) { usWar = true; say(y, "regime", "A crisis over atrocities and covert arms shipments escalates into war with the United States, which holds an atomic monopoly."); }
+    }
+
+    let control = 0;
+    REGIONS.forEach((r, i) => { control += r.value * (lost[i] ? 0 : 1 - R[i]); series.R[i].push(R[i]); });
+    series.control.push(control * 100); series.E.push(E); series.coh.push(coh);
+
+    if (usWar) { outcome = "uswar"; endYear = y; say(y, "end", "Germany cannot match an atomic power. The regime capitulates within the year."); break; }
+    if (coh < 0.12) { outcome = "collapse"; endYear = y; say(y, "end", "Regime cohesion collapses. Rival factions, generals and regional bosses fight over the wreckage, and the occupied countries break free."); break; }
+  }
+
+  if (!outcome) {
+    const heldN = REGIONS.filter((r, i) => !lost[i] && R[i] < 0.5).length;
+    if (lost[0] && lost[4]) outcome = "rollback";
+    else if (heldN >= 5 && coh > 0.4) outcome = "hegemony";
+    else if (heldN >= 3) outcome = "fraying";
+    else outcome = "rollback";
+    const end = { hegemony: "The Reich still holds Europe from the Atlantic to the Urals. Resistance survives only in pockets.",
+      fraying: "Germany still rules most of Europe, but at least one region has broken away and garrisons are stretched thin.",
+      rollback: "German control has been rolled back across much of Europe. What remains is a besieged core." }[outcome];
+    say(END, "end", end);
+  }
+  // pad series for early-ending runs so aggregation lines up
+  const n = END - START + 1;
+  const padTo = (arr, v) => { while (arr.length < n) arr.push(v); };
+  padTo(series.control, 0); padTo(series.E, Math.max(30, series.E[series.E.length - 1] * 0.6)); padTo(series.coh, 0);
+  series.R.forEach(a => padTo(a, 1));
+  return { outcome, endYear, series, lost, lostYear, rumpSurvived: rumpAlive, leader, deBomb, usBomb, log };
+}
+
+function runBatch(p) {
+  const rng = mulberry32(p.seed);
+  const runs = [];
+  for (let k = 0; k < p.runs; k++) runs.push(simulate(p, rng, true));
+  return runs;
+}
+
+function quantile(sorted, q) { const pos = (sorted.length - 1) * q; const lo = Math.floor(pos), hi = Math.ceil(pos); return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo); }
+
+function aggregate(runs) {
+  const n = END - START + 1;
+  const counts = { hegemony: 0, fraying: 0, rollback: 0, collapse: 0, uswar: 0 };
+  runs.forEach(r => counts[r.outcome]++);
+  const pick = (getter) => {
+    const med = [], p10 = [], p90 = [];
+    for (let t = 0; t < n; t++) { const col = runs.map(r => getter(r)[t]).sort((a, b) => a - b); med.push(quantile(col, 0.5)); p10.push(quantile(col, 0.1)); p90.push(quantile(col, 0.9)); }
+    return { med, p10, p90 };
+  };
+  const control = pick(r => r.series.control);
+  const econ = pick(r => r.series.E);
+  const regions = REGIONS.map((_, i) => ({ ...pick(r => r.series.R[i]), lostShare: runs.filter(r => r.lost[i]).length / runs.length }));
+  return { counts, control, econ, regions, total: runs.length };
+}
+// ===MODEL END===
+
+const OUTCOMES = [
+  { key: "hegemony", label: "Hegemony holds", desc: "Five or more regions quiet and held, regime stable" },
+  { key: "fraying", label: "Fraying empire", desc: "Most of Europe held, some regions lost" },
+  { key: "rollback", label: "Rollback", desc: "Core regions lost; empire reduced to a besieged core" },
+  { key: "collapse", label: "Internal collapse", desc: "Regime breaks apart from within" },
+  { key: "uswar", label: "War with the US", desc: "Crisis escalates against an atomic power" }
+];
+
+const CONTROLS = [
+  { id: "brutality", label: "Occupation brutality", min: 0, max: 1, step: 0.05, fmt: v => `${Math.round(v * 100)}%`, hint: "Reprisals, starvation policy, deportation. 90% approximates actual Nazi policy in the East." },
+  { id: "extraction", label: "Economic extraction", min: 0, max: 1, step: 0.05, fmt: v => `${Math.round(v * 100)}%`, hint: "How hard occupied economies are squeezed. France paid 20–55% of GDP in occupation costs." },
+  { id: "collab", label: "Collaboration incentives", min: 0, max: 1, step: 0.05, fmt: v => `${Math.round(v * 100)}%`, hint: "Local autonomy, fair pay, real partnership with satellite governments." },
+  { id: "external", label: "Outside support for resistance", min: 0, max: 1, step: 0.05, fmt: v => `${Math.round(v * 100)}%`, hint: "Covert arms, money and drops from the US, a neutral Britain and exiles." },
+  { id: "rump", label: "Chance a Soviet rump state survives", min: 0, max: 1, step: 0.05, fmt: v => `${Math.round(v * 100)}%`, hint: "Without the 1941 factory evacuation, the USSR may collapse outright." },
+  { id: "pragmatism", label: "Chance Hitler's successor is a pragmatist", min: 0, max: 1, step: 0.05, fmt: v => `${Math.round(v * 100)}%`, hint: "Versus Himmler, Göring or Bormann taking power." },
+  { id: "bombYear", label: "Expected year of a US atomic bomb", min: 1945, max: 1980, step: 1, fmt: v => v > 1970 ? `${v} (none by 1970)` : `${v}`, hint: "The real crash program began only after Pearl Harbor. Without a war it may come late or not at all. Each run adds ±3 years of chance." }
+];
+
+const PRESETS = [
+  { id: "historical", label: "Nazi policy as it was", vals: { brutality: 0.9, extraction: 0.75, collab: 0.2, external: 0.35, rump: 0.5, pragmatism: 0.3, bombYear: 1958 } },
+  { id: "pragmatic", label: "Pragmatic occupier", vals: { brutality: 0.35, extraction: 0.4, collab: 0.6, external: 0.35, rump: 0.5, pragmatism: 0.5, bombYear: 1958 } },
+  { id: "isolated", label: "Resistance abandoned", vals: { brutality: 0.9, extraction: 0.75, collab: 0.2, external: 0.0, rump: 0.0, pragmatism: 0.3, bombYear: 1965 } },
+  { id: "coldwar", label: "Cold War backing", vals: { brutality: 0.9, extraction: 0.75, collab: 0.2, external: 0.75, rump: 0.7, pragmatism: 0.3, bombYear: 1950 } }
+];
+
+const state = { p: { ...DEFAULTS }, runs: [], agg: null, chronOutcome: null, chronIndex: 0 };
+
+function el(tag, attrs = {}, html = "") { const e = document.createElement(tag); Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v)); if (html) e.innerHTML = html; return e; }
+
+function buildControls() {
+  const box = document.getElementById("controls");
+  box.style.display = "grid"; box.style.gap = "14px";
+  CONTROLS.forEach(c => {
+    const wrap = el("div", { class: "ctl" });
+    wrap.innerHTML = `<div class="ctl-head"><label for="c-${c.id}">${c.label}</label><output id="o-${c.id}" for="c-${c.id}"></output></div>
+      <input type="range" id="c-${c.id}" min="${c.min}" max="${c.max}" step="${c.step}" value="${state.p[c.id]}">
+      <div class="hint">${c.hint}</div>`;
+    box.appendChild(wrap);
+    const input = wrap.querySelector("input");
+    input.addEventListener("input", () => { state.p[c.id] = parseFloat(input.value); syncOutputs(); markPreset(); scheduleRun(); });
+  });
+  syncOutputs();
+  const pre = document.getElementById("presets");
+  PRESETS.forEach(ps => {
+    const b = el("button", { class: "chip", type: "button", "data-id": ps.id, "aria-pressed": "false" }, ps.label);
+    b.addEventListener("click", () => { Object.assign(state.p, ps.vals); CONTROLS.forEach(c => { document.getElementById(`c-${c.id}`).value = state.p[c.id]; }); syncOutputs(); markPreset(); run(); });
+    pre.appendChild(b);
+  });
+  markPreset();
+}
+function syncOutputs() { CONTROLS.forEach(c => { document.getElementById(`o-${c.id}`).textContent = c.fmt(state.p[c.id]); }); }
+function markPreset() {
+  document.querySelectorAll("#presets .chip").forEach(b => {
+    const ps = PRESETS.find(x => x.id === b.dataset.id);
+    const match = Object.entries(ps.vals).every(([k, v]) => Math.abs(state.p[k] - v) < 1e-9);
+    b.setAttribute("aria-pressed", match ? "true" : "false");
+  });
+}
+
+let timer = null;
+function scheduleRun() { clearTimeout(timer); timer = setTimeout(run, 220); }
+
+function run() {
+  const t0 = performance.now();
+  state.runs = runBatch(state.p);
+  state.agg = aggregate(state.runs);
+  state.chronOutcome = null; state.chronIndex = 0;
+  render();
+  document.getElementById("status").textContent = `seed ${state.p.seed} · ${Math.round(performance.now() - t0)} ms`;
+}
+
+function pct(n, total) { return Math.round((n / total) * 100); }
+
+function render() {
+  const { counts, total } = state.agg;
+  const holds = counts.hegemony + counts.fraying;
+  const top = OUTCOMES.slice().sort((a, b) => counts[b.key] - counts[a.key])[0];
+  const head = document.getElementById("headline");
+  head.innerHTML = holds / total >= 0.5
+    ? `In <em>${pct(holds, total)}%</em> of ${total} runs, Germany still rules most of Europe in 1970.`
+    : `In <em>${pct(total - holds, total)}%</em> of ${total} runs, German rule over Europe has broken by 1970.`;
+  head.title = `Most common outcome: ${top.label}`;
+
+  const stack = document.getElementById("stack"); stack.innerHTML = "";
+  const legend = document.getElementById("legend"); legend.innerHTML = "";
+  OUTCOMES.forEach(o => {
+    const share = counts[o.key] / total;
+    if (share > 0) { const d = el("div", { class: `o-${o.key}`, title: `${o.label}: ${pct(counts[o.key], total)}%` }); d.style.width = `${share * 100}%`; stack.appendChild(d); }
+    legend.appendChild(el("div", { class: "item" }, `<span class="sw o-${o.key}"></span><span>${o.label}</span><span class="pct">${pct(counts[o.key], total)}%</span><span class="desc">${o.desc}</span>`));
+  });
+  stack.setAttribute("aria-label", OUTCOMES.map(o => `${o.label} ${pct(counts[o.key], total)}%`).join(", "));
+
+  renderControlChart();
+  renderMultiples();
+  renderChronFilter();
+  renderChronicle();
+  renderSupplyTable();
+}
+
+function renderControlChart() {
+  const { control, econ } = state.agg;
+  const W = 760, H = 300, m = { l: 40, r: 44, t: 16, b: 30 };
+  const n = control.med.length;
+  const x = i => m.l + (i / (n - 1)) * (W - m.l - m.r);
+  const y = v => m.t + (1 - v / 100) * (H - m.t - m.b);
+  const eMax = Math.max(200, Math.ceil(Math.max(...econ.med) / 50) * 50);
+  const ye = v => m.t + (1 - v / eMax) * (H - m.t - m.b);
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Reich control index over time">`;
+  [0, 25, 50, 75, 100].forEach(v => { s += `<line class="grid" x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}"/><text x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">${v}</text>`; });
+  [0, eMax / 2, eMax].forEach(v => { s += `<text x="${W - m.r + 8}" y="${ye(v) + 4}">${Math.round(v)}</text>`; });
+  for (let yr = START; yr <= END; yr += 5) { const i = yr - START; s += `<text x="${x(i)}" y="${H - 8}" text-anchor="middle">${yr}</text>`; }
+  let band = `M${x(0)},${y(control.p90[0])}`;
+  for (let i = 1; i < n; i++) band += `L${x(i)},${y(control.p90[i])}`;
+  for (let i = n - 1; i >= 0; i--) band += `L${x(i)},${y(control.p10[i])}`;
+  s += `<path class="band" d="${band}Z"/>`;
+  s += `<path class="line e" d="${econ.med.map((v, i) => `${i ? "L" : "M"}${x(i)},${ye(v)}`).join("")}"/>`;
+  s += `<path class="line" d="${control.med.map((v, i) => `${i ? "L" : "M"}${x(i)},${y(v)}`).join("")}"/>`;
+  const last = control.med[n - 1];
+  s += `<circle class="dot" cx="${x(n - 1)}" cy="${y(last)}" r="4"/><text class="lab" x="${x(n - 1) - 6}" y="${y(last) - 10}" text-anchor="end">${Math.round(last)} in 1970</text>`;
+  s += `<line class="axis" x1="${m.l}" x2="${W - m.r}" y1="${y(0)}" y2="${y(0)}"/></svg>`;
+  document.getElementById("controlChart").innerHTML = s;
+}
+
+function renderMultiples() {
+  const box = document.getElementById("multiples"); box.innerHTML = "";
+  const W = 240, H = 54;
+  REGIONS.forEach((r, i) => {
+    const a = state.agg.regions[i];
+    const n = a.med.length;
+    const x = k => (k / (n - 1)) * W;
+    const y = v => 4 + (1 - v) * (H - 8);
+    let band = `M${x(0)},${y(a.p90[0])}`;
+    for (let k = 1; k < n; k++) band += `L${x(k)},${y(a.p90[k])}`;
+    for (let k = n - 1; k >= 0; k--) band += `L${x(k)},${y(a.p10[k])}`;
+    const line = a.med.map((v, k) => `${k ? "L" : "M"}${x(k)},${y(v)}`).join("");
+    const share = a.lostShare;
+    const status = share >= 0.5 ? ["lost", "Usually lost"] : share >= 0.2 ? ["contested", "Contested"] : ["held", "Usually held"];
+    const card = el("div", { class: "mini" });
+    card.innerHTML = `<div class="row"><span class="nm">${r.name}</span><span class="pill ${status[0]}">${status[1]}</span></div>
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-label="${r.name} resistance trend"><path class="rb" d="${band}Z"/><line class="thr" x1="0" x2="${W}" y1="${y(0.6)}" y2="${y(0.6)}"/><path class="r" d="${line}" vector-effect="non-scaling-stroke"/></svg>
+      <div class="meta">Lost by 1970 in ${Math.round(share * 100)}% of runs · median strength ${Math.round(a.med[n - 1] * 100)}%</div>`;
+    box.appendChild(card);
+  });
+}
+
+function renderChronFilter() {
+  const box = document.getElementById("chronFilter"); box.innerHTML = "";
+  const { counts } = state.agg;
+  const avail = OUTCOMES.filter(o => counts[o.key] > 0);
+  if (!state.chronOutcome) state.chronOutcome = avail.slice().sort((a, b) => counts[b.key] - counts[a.key])[0].key;
+  avail.forEach(o => {
+    const b = el("button", { class: "chip", type: "button", "aria-pressed": String(o.key === state.chronOutcome) }, o.label);
+    b.addEventListener("click", () => { state.chronOutcome = o.key; state.chronIndex = 0; renderChronFilter(); renderChronicle(); });
+    box.appendChild(b);
+  });
+  const next = el("button", { class: "chip", type: "button" }, "Another run →");
+  next.addEventListener("click", () => { state.chronIndex++; renderChronicle(); });
+  box.appendChild(next);
+}
+
+function renderChronicle() {
+  const pool = state.runs.filter(r => r.outcome === state.chronOutcome);
+  const list = document.getElementById("chron"); list.innerHTML = "";
+  if (!pool.length) return;
+  const run = pool[state.chronIndex % pool.length];
+  run.log.forEach(ev => {
+    const li = el("li", { class: `k-${ev.kind}` });
+    li.innerHTML = `<span class="yr">${ev.y}</span><span>${ev.text}</span>`;
+    list.appendChild(li);
+  });
+}
+
+function renderSupplyTable() {
+  const tb = document.getElementById("supplyTable"); tb.innerHTML = "";
+  REGIONS.forEach(r => {
+    const tr = el("tr");
+    tr.innerHTML = `<td><strong>${r.name}</strong></td><td>${r.who}</td><td>${r.route}</td><td>${r.analog}</td><td class="num">${Math.round(r.access * 100)}%</td>`;
+    tb.appendChild(tr);
+  });
+}
+
+document.getElementById("run").addEventListener("click", run);
+document.getElementById("reseed").addEventListener("click", () => { state.p.seed = Math.floor(Math.random() * 1e6); run(); });
+buildControls();
+run();
+</script>
