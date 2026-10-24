@@ -2,7 +2,7 @@ import { REGIONS, REGION_INDEX, START, END, YEARS } from "./regions";
 import { GROUPS, GROUP_INDEX } from "./groups";
 import { NEUTRALS } from "./sponsors";
 import {
-  CELLS, NC, CELLS_OF_REGION, RIVALS_OF_CELL, JEWISH_SHARE, ALLY_INDEPENDENCE, GPO_TARGET, HARVEST_ZONE, NZONES,
+  CELLS, NC, CELLS_OF_REGION, RIVALS_OF_CELL, ARMS_CACHE, JEWISH_SHARE, ALLY_INDEPENDENCE, GPO_TARGET, HARVEST_ZONE, NZONES,
 } from "./cells";
 import {
   ZONES, ZONE_OF, INITIAL_GOVERNORS, HEYDRICH_REPLACEMENT, ARCHETYPES, HITLER, HEIRS, COHORT_LABEL, FACTION_IDEOLOGY,
@@ -46,8 +46,11 @@ export const TUNE = {
   despBrut: 0.178,
   growthThr: 0.178,
   suppW: 0.573,
-  garScale: 3.024,
+  garScale: 3.2,
   dBase: 0.22,
+  rise: 0.6,
+  surge: 2,
+  crush: 8,
 };
 
 const FACTIONS: FactionId[] = ["ss", "party", "wehr", "tech", "goring"];
@@ -203,9 +206,14 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
     const c = CELLS[i];
     const g = GROUPS[c.g];
     const r = REGIONS[c.r];
-    cR[i] = g.id === "vdt" || r.kind === "ally" ? 0 : 0.02 + 0.05 * g.bm * r.terrain + (rumpAlive && r.sovReach > 0.8 ? 0.04 * g.comm : 0);
+    // Men who kept their rifles when their army dissolved are the first fighters.
+    cR[i] = g.id === "vdt" || r.kind === "ally" ? 0
+      : 0.02 + 0.05 * g.bm * r.terrain + 0.12 * (ARMS_CACHE[r.id] ?? 0) * (1 - g.collabP) + (rumpAlive && r.sovReach > 0.8 ? 0.04 * g.comm : 0);
     cA[i] = r.kind === "ally" ? 0.04 : 0.08 * (1 - g.collabP * 0.5);
     cD[i] = 0.2 + g.ident * 0.3 + g.bm * 0.1;
+    const commit0 = r.titular === g.id ? (ALLY_RULERS.find((a) => a.regions.includes(r.id))?.commit ?? 0.5) : 0;
+    cColAct[i] = g.id === "vdt" ? 0.6 + 0.3 * p.collab
+      : Math.max(commit0 * g.collabP, clamp((p.collab + 0.25 * (r.titular === g.id ? 1 - commit0 : 0)) * g.collabP * (1 - 0.6 * cD[i]) * (0.5 + 0.5 * X), 0, 1));
   }
 
   // ---------- Regions ----------
@@ -213,6 +221,8 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
   const lostByResistance = new Array(NR).fill(false);
   const streak = new Array(NR).fill(0);
   const cStreak = new Array(NR).fill(0);
+  const regTop = new Float64Array(NR);
+  const surgeGar = new Float64Array(NR);
   const contested = new Array(NR).fill(false);
   const contestedEver = new Array(NR).fill(false);
   const regR = new Float64Array(NR);
@@ -227,6 +237,7 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
   const resLeaders: ResLeader[] = [];
   const groupLeader = new Array<number>(NG).fill(-1);
 
+  let lastDefection = -99;
   let learnG = 0;
   let settlers = 0.1;
   let church = 0;
@@ -461,7 +472,16 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
     for (let i = 0; i < NC; i++) aux[CELLS[i].r] += cColAct[i] * CELLS[i].share * cPop[i] * 0.5;
     const wReg = REGIONS.map((r, i) => (regR[i] + 0.3 * regA[i] + 0.04) * r.priority * (1 + 3 * r.value) * (r.kind === "ally" ? 0.25 : r.kind === "puppet" ? 0.6 : 1));
     const wsum = wReg.reduce((a, b) => a + b, 0);
-    const gar = REGIONS.map((_, i) => (lost[i] ? 0.3 : 1) * (manpower * wReg[i]) / wsum + aux[i] * 0.15);
+    // Divisions go where a rising flares, including a minority's districts inside an otherwise quiet region.
+    const flare = REGIONS.map((r, i) => (r.kind === "ally" ? 0 : Math.max(0, Math.max(regR[i], 0.8 * regTop[i]) - 0.2) * r.priority));
+    const fsum = flare.reduce((a, b) => a + b, 0);
+    const surge = TUNE.surge * (1 - frontDrain) * (0.6 + 0.4 * coh) * Math.min(1, fsum * 2);
+    // Reinforcements arrive within the year and stay after the rising is broken, draining away over several years.
+    for (let i = 0; i < NR; i++) {
+      const want = fsum > 0 ? (surge * flare[i]) / fsum : 0;
+      surgeGar[i] = want > surgeGar[i] ? surgeGar[i] + 0.7 * (want - surgeGar[i]) : surgeGar[i] * 0.85;
+    }
+    const gar = REGIONS.map((_, i) => (lost[i] ? 0.3 : 1) * ((manpower * wReg[i]) / wsum + surgeGar[i]) + aux[i] * 0.15);
     const heli = y >= 1955 ? clamp((y - 1954) * 0.07 * Math.min(1, S), 0, 0.5) : 0;
 
     // 8. Information from outside. With Britain at peace, the BBC is muted; America carries most of it.
@@ -544,13 +564,13 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
         const legit = titular && allyKey ? 1 - allyCommit[allyKey] : 1;
         const leaderIdx = groupLeader[c.g];
         const L = leaderIdx >= 0 ? resLeaders[leaderIdx].talent : null;
-        const brutLocal = clamp((ally ? brutEff * 0.25 : brutEff + (zeal - 0.5) * 0.4) * (titular ? 0.6 : 1), 0, 1);
+        const brutLocal = clamp((ally ? brutEff * 0.25 : brutEff + (zeal - 0.5) * 0.4) * (titular ? 0.75 : 1), 0, 1);
         const indisc = brutLocal * (1 - 0.6 * comp);
         const colLocal = clamp(colEff + 0.15 * comp * (1 - zeal) + 0.1 * (gt.diplomat - 0.4) + (titular ? 0.25 * legit : 0), 0, 1);
 
         // Victimization by rival groups' collaborators: divide and rule turns neighbors into enforcers.
         let vict = 0;
-        for (const [j, k] of RIVALS_OF_CELL[i]) vict += k * cColAct[j] * Math.min(1, CELLS[j].share * cPop[j] * 4);
+        for (const [j, k] of RIVALS_OF_CELL[i]) vict += k * Math.max(cColAct[j], cR[j]) * Math.min(1, CELLS[j].share * cPop[j] * 4);
         vict = clamp(vict, 0, 1);
 
         // Food: German quotas against the harvest. A bad year turns quotas into famine.
@@ -611,7 +631,9 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
           + hunger * 0.3 + roundup * 0.18 + cAtro[i] * 0.25 + vict * 0.35 + church * g.rel * 0.2 + aware * (0.05 + 0.1 * marked)
           - colLocal * (0.1 + 0.35 * g.collabP) - X * 0.15 * (1 - g.bm) + cGen[i] - (titular ? 0.15 * legit : 0) + allyLoad
           - 0.05 * (gt.orator - 0.4) * (ally ? 0 : 1);
-        cD[i] += 0.25 * (clamp(dTarget, 0, 1) - cD[i]);
+        // Crisis compresses time: massacres, famine and expulsions change minds in months, not years.
+        const shock = clamp(Math.max(vict, hunger, cAtro[i], gpoHit * 10), 0, 1);
+        cD[i] += (0.25 + 0.5 * shock) * (clamp(dTarget, 0, 1) - cD[i]);
 
         // Fear and perceived odds decide whether private dissent becomes public defiance (Kuran; Granovetter).
         const garD = gar[r];
@@ -623,7 +645,7 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
         const theta = g.theta - (L ? 0.12 * L.orator * L.force : 0);
         const aTarget = cD[i] * TUNE.aMax * sigmoid((odds + desperation - theta - TUNE.fearW * fear + TUNE.aOffset) / 0.08);
         const prevA = cA[i];
-        cA[i] = clamp(cA[i] + 0.35 * (aTarget - cA[i]), 0, 1);
+        cA[i] = clamp(cA[i] + (0.35 + 0.5 * desperation) * (aTarget - cA[i]), 0, 1);
         if (!ally && !logged[i].cascade && cA[i] - prevA > 0.12 && cA[i] > 0.3) {
           logged[i].cascade = true;
           say(y, "psych", `${reg.name}: years of outward compliance among ${g.name} break within months. The private hatred was always there; once the Reich looked beatable, people stopped hiding it.`, reg.id);
@@ -660,16 +682,21 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
         }
 
         if (!ally) {
-          // Without a supplier, fighters arm themselves with captured weapons and with what defecting
-          // police and militia bring over (Ukrainian auxiliaries joining the UPA in 1943, Slovak army units in 1944).
-          const auxArms = g.collabP * Math.max(0, cD[i] - 0.5);
-          const armsCap = cCap[i] * (0.42 + 0.58 * Math.min(1, supply * 2.5 + auxArms));
+          // Without a supplier, fighters arm themselves with captured weapons, with what defecting police and
+          // militia bring over (Ukrainian auxiliaries joining the UPA in 1943), and with the stocks dissolved armies
+          // left behind in 1939–41, which run down over a decade. Reprisals can burn villages; they cannot undo defections.
+          const auxArms = 0.5 * g.collabP * clamp((cD[i] - 0.4) / 0.4, 0, 1);
+          const caches = 0.3 * (ARMS_CACHE[reg.id] ?? 0) * Math.max(0, 1 - t / 10);
+          const armsCap = Math.min(1, cCap[i] * (0.42 + 0.58 * Math.min(1, supply * 2.5)) + auxArms + caches);
           const gen = L ? 1 + 0.5 * L.general * L.force : 1;
           const growth = (0.55 * cR[i] * (1 - cR[i] / armsCap) * (cA[i] - TUNE.growthThr) * (0.6 + 0.6 * c.terrain) * (1 + 0.3 * cLearn[i]) * gen
-            + 0.1 * supply * cA[i] + 0.015 * cA[i] + 0.05 * roundup * cD[i] * c.terrain) * (1 - 0.7 * nonviol) - 0.06 * infight * cR[i];
+            + 0.1 * supply * cA[i] + 0.015 * cA[i] + 0.05 * roundup * cD[i] * c.terrain
+            + TUNE.rise * (desperation * cA[i] + Math.max(0, cA[i] - theta)) * Math.max(0, 1 - cR[i] / armsCap)) * (1 - 0.7 * nonviol) - 0.06 * infight * cR[i];
           const supp = garD * TUNE.suppW * (1 - 0.55 * c.terrain * (1 - heli)) * (0.75 + 0.5 * brutLocal) * (0.6 + 0.8 * comp)
             * (1 + 0.3 * (gt.general - 0.4)) * (1 + 0.4 * learnG) * (1 + 0.15 * (T.general - 0.4)) * Math.min(1, cR[i] * 4) * (1 - 0.5 * supply)
-            * (L ? 1 - 0.3 * L.general * L.force : 1);
+            * (L ? 1 - 0.3 * L.general * L.force : 1)
+            // A rising that holds open territory can be hit by conventional divisions, as the Užice republic was in November 1941.
+            * (1 + TUNE.crush * Math.max(0, cR[i] - 0.4));
           cAtro[i] = clamp(cAtro[i] + indisc * g.bm * (cR[i] > 0.1 ? 0.07 : 0.025) - 0.03, 0, 1);
           if (cR[i] > 0.12) cCap[i] = clamp(cCap[i] - indisc * g.bm * 0.035 * (1 - supply) * (1 - c.terrain * 0.4), 0.25, 1);
           else cCap[i] = clamp(cCap[i] + 0.01, 0.25, 1);
@@ -679,7 +706,8 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
         } else if (!lost[r]) {
           cR[i] = clamp(cR[i] + 0.1 * (cA[i] * 0.6 - cR[i]) + gauss(rng) * 0.01, 0, 1);
         }
-        colActNext[i] = clamp(colLocal * g.collabP * (1 - 0.6 * cD[i]) * (0.5 + 0.5 * X), 0, 1);
+        // A puppet regime's own enforcers (the Ustaše, the Hlinka Guard) act as hard as the regime is committed, whatever the population thinks.
+        colActNext[i] = Math.max(titular && allyKey ? allyCommit[allyKey] * g.collabP : 0, clamp(colLocal * g.collabP * (1 - 0.6 * cD[i]) * (0.5 + 0.5 * X), 0, 1));
         if (cR[i] > groupPeak[c.g]) groupPeak[c.g] = cR[i];
         recordCell(t, i, sUS, sUK, sEX, sSU, sNE, fear, vict, hunger);
       }
@@ -695,13 +723,39 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
       regA[r] = wt > 0 ? aa / wt : 0;
       regNC[r] = wt > 0 ? nn / wt : 0;
 
+      // Allied governments and puppet armies switch sides when loyalty is low and there is an opening: a strong Soviet
+      // rump nearby, a regime coming apart, an outside offer once the Reich looks beatable, a gifted diplomat in
+      // charge, or a neighbor that has just switched during a Soviet push (Romania in August 1944, then Slovakia and Bulgaria).
+      const defects = (defiance: number): boolean => {
+        const majorRel = cs.reduce((m, i) => Math.max(m, GROUPS[CELLS[i].g].rel), 0);
+        const loyalty = 0.15 + X * 0.5 + coh * 0.25 + allyCommit[allyKey] * 0.25 - defiance * 0.6 - church * majorRel * 0.1 - allyShock[allyKey] + 0.1 * (T.diplomat - 0.45);
+        let sup = 0;
+        for (const i of cs) sup = Math.max(sup, cellRec[(t * NC + i) * NCF + CF.S_US] + cellRec[(t * NC + i) * NCF + CF.S_UK] + cellRec[(t * NC + i) * NCF + CF.S_SU]);
+        const opening = (sup > 0.12 && (X < 0.4 || coh < 0.55)) || coh < 0.38 || (rumpAlive && K > 0.5 && reg.sovReach >= 0.4)
+          || allyDiplomat[allyKey] > 0.8 || (y - lastDefection <= 1 && rumpAlive && K > 0.35 && reg.sovReach >= 0.3);
+        return loyalty < 0.3 && opening;
+      };
+
       if (!ally) {
+        // A puppet's own army can turn on the Germans, as the Slovak army did in 1944: a defection, not a guerrilla war.
+        const tit = reg.kind === "puppet" && allyKey && !lost[r] ? cs.filter((i) => GROUPS[CELLS[i].g].id === reg.titular) : [];
+        if (tit.length && defects(cA[tit[0]])) {
+          lastDefection = y;
+          for (const i of tit) cR[i] = Math.max(cR[i], 0.3 + 0.4 * cD[i]);
+          regR[r] = cs.reduce((a, i, k) => a + (GROUPS[CELLS[i].g].id === "vdt" ? 0 : regW[r][k] * cPop[i] * cR[i]), 0) / Math.max(1e-6, cs.reduce((a, i, k) => a + (GROUPS[CELLS[i].g].id === "vdt" ? 0 : regW[r][k] * cPop[i]), 0));
+          lost[r] = true; lostByResistance[r] = true; newLosses++; newLossVal += reg.value * (contested[r] ? 0.5 : 1);
+          contested[r] = false; streak[r] = 0;
+          say(y, "loss", `${reg.name}: the army of ${reg.regime} rises against the Germans, and much of the country goes with it.`, reg.id);
+        }
         streak[r] = regR[r] >= 0.6 ? streak[r] + 1 : 0;
         // A minority insurgency cannot take the whole region, but it can hold its own districts (the Serb Krajina, the Bosnian mountains).
         let topR = 0; let topCell = -1;
         for (const i of cs) if (GROUPS[CELLS[i].g].id !== "vdt" && CELLS[i].share >= 0.15 && CELLS[i].share < 0.5 && cR[i] > topR) { topR = cR[i]; topCell = i; }
         cStreak[r] = topR >= 0.6 ? cStreak[r] + 1 : 0;
-        if (!lost[r] && streak[r] >= 2) {
+        regTop[r] = topR;
+        if (lost[r] && lastDefection === y && tit.length) {
+          // Just defected: the uprising holds for now.
+        } else if (!lost[r] && streak[r] >= 2) {
           lost[r] = true; lostByResistance[r] = true; newLosses++; newLossVal += reg.value * (contested[r] ? 0.5 : 1);
           contested[r] = false;
           say(y, "loss", `${reg.name}: resistance forces now hold and govern territory. Germany has effectively lost the region.`, reg.id);
@@ -716,13 +770,8 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
           say(y, "gain", `${reg.name}: German and auxiliary forces clear the insurgent districts.`, reg.id);
         }
       } else if (!lost[r]) {
-        const majorRel = cs.reduce((m, i) => Math.max(m, GROUPS[CELLS[i].g].rel), 0);
-        const loyalty = 0.15 + X * 0.5 + coh * 0.25 + allyCommit[allyKey] * 0.25 - regA[r] * 0.6 - church * majorRel * 0.1 - allyShock[allyKey] + 0.1 * (T.diplomat - 0.45);
-        let sup = 0;
-        for (const i of cs) sup = Math.max(sup, cellRec[(t * NC + i) * NCF + CF.S_US] + cellRec[(t * NC + i) * NCF + CF.S_UK] + cellRec[(t * NC + i) * NCF + CF.S_SU]);
-        // An outside offer only matters once the Reich looks beatable, as in 1943 for Italy and 1944 for Romania and Finland.
-        const opening = (sup > 0.12 && (X < 0.4 || coh < 0.55)) || coh < 0.38 || (rumpAlive && K > 0.5 && reg.sovReach >= 0.4) || allyDiplomat[allyKey] > 0.8;
-        if (loyalty < 0.3 && opening) {
+        if (defects(regA[r])) {
+          lastDefection = y;
           lost[r] = true; lostByResistance[r] = true; newLosses++; newLossVal += reg.value;
           // The national army turns on the German garrisons: the allied people is now armed against the Reich.
           for (const i of cs) if (GROUPS[CELLS[i].g].id !== "vdt") cR[i] = Math.max(cR[i], 0.3 + 0.4 * cD[i]);

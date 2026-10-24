@@ -18,7 +18,13 @@ const pen = (v: number, lo: number, hi: number) => (v < lo ? lo - v : v > hi ? v
 function score() {
   const h = aggregate(runBatch(P("historical")));
   let s = pen(hold(h), ...HOLD_TARGETS.historical) * 4;
-  for (const [g, [lo, hi]] of Object.entries(GROUP_TARGETS)) s += pen(h.groupMajor[GROUP_INDEX[g]], lo, hi);
+  // Timing counts: a group must rise by 1945 and fade (or hold) by 1950 where history says so.
+  for (const [g, tg] of Object.entries(GROUP_TARGETS)) {
+    const k = GROUP_INDEX[g];
+    if (tg.by1945) s += pen(h.groupBy1945[k], ...tg.by1945);
+    if (tg.in1950) s += pen(h.groupIn1950[k], ...tg.in1950);
+    if (tg.ever) s += pen(h.groupMajor[k], ...tg.ever);
+  }
   for (const [r, [lo, hi]] of Object.entries(REGION_TARGETS)) s += pen(h.lostShare[REGION_INDEX[r]], lo, hi);
   const iso = aggregate(runBatch(P("isolated")));
   const cw = aggregate(runBatch(P("coldwar")));
@@ -31,6 +37,7 @@ const rand = mulberry32(Number(process.argv[4] ?? 1));
 const RANGES: Record<keyof typeof TUNE, [number, number]> = {
   aOffset: [0, 0.2], aMax: [0.5, 0.9], fearW: [0.2, 0.6], despAtro: [0.2, 0.6], despBrut: [0.1, 0.4],
   growthThr: [0.12, 0.3], suppW: [0.2, 0.7], garScale: [1, 4.5], dBase: [0, 0.35],
+  rise: [0, 2], surge: [0, 2], crush: [0, 8],
 };
 let best = { s: score().s, t: { ...TUNE } };
 console.log("start", best.s.toFixed(3), JSON.stringify(TUNE));

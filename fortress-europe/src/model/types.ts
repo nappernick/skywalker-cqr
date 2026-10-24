@@ -199,6 +199,10 @@ export interface Aggregate {
   contestedShare: number[];
   /** [group] share of runs where the group's resistance becomes a major force (strength ≥ 0.5). */
   groupMajor: number[];
+  /** [group] share of runs where the group is a major force at some point from 1941 to 1945. */
+  groupBy1945: number[];
+  /** [group] share of runs still going in 1950 in which the group is a major force that year. */
+  groupIn1950: number[];
   hitlerDead: number[];
   churchWar: number[];
   usBomb: number[];

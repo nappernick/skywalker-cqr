@@ -72,7 +72,7 @@ export function GroupMultiples({ v }: { v: View }) {
                 <path className="r" d={d} />
                 <line className="cursor" x1={x(t)} x2={x(t)} y1={0} y2={H} />
               </svg>
-              <span className="meta">major force in {pct(agg.groupMajor[gi])} of runs</span>
+              <span className="meta">major by 1945 in {pct(agg.groupBy1945[gi])}, ever in {pct(agg.groupMajor[gi])}</span>
             </div>
           );
         })}

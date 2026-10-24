@@ -200,6 +200,7 @@ If it survives, its strength `K` grows with Soviet and US support and shrinks un
 ### 5.7 Garrisons and auxiliaries
 - **Manpower** = `garScale × (1 − frontDrain) × cohesion factor × oil factor`.
 - **Allocation:** manpower goes to regions by resistance strength, defiance, strategic priority and value. Allies get ×0.25 of the weight and puppets ×0.6.
+- **Counterinsurgency surge:** a Reich with no other front sends divisions to wherever a rising flares, including a minority's districts inside an otherwise quiet region. The pool is `surge × (1 − frontDrain) × cohesion factor`, shared by `max(regional R, 0.8 × strongest minority R) − 0.2`. Each region's surge is a stock: it builds 70% of the way to demand within the year and drains 15% a year after, so reinforcements stay after a rising is broken (Užice, November 1941).
 - **Auxiliaries:** groups whose members actively collaborate (ethnic Germans, Ustaše Croats and others) add local auxiliaries to their region's garrison.
 - **Helicopters** reduce the terrain advantage from 1955, if strength allows.
 
@@ -240,7 +241,7 @@ For each group in each region:
   - `colLocal` rises with competent, low-zeal governors, diplomatic governors and titular status.
   - **Puppet legitimacy:** the titular group's co-optation bonus and dissent discount scale with `1 − commitment` of the puppet ruler. A puppet that serves Berlin wholeheartedly (Pavelić, commitment .85, who also ceded Dalmatia to Italy) earns its own people little national credit; a less committed successor earns more.
 - **Terrain** is the region's, unless a group's own districts differ. Western Ukrainians use 0.65 for the Volhynian forests and Carpathian foothills, against 0.45 for Ukraine as a whole. Terrain enters desperation, growth, draft evasion, suppression and erosion of the arms ceiling.
-- **Victimization** comes from rival groups' active collaborators in the same region: divide and rule turns neighbors into enforcers. For example, Ustaše Croats against Serbs at strength .95.
+- **Victimization** comes from rival groups' active collaborators and armed fighters in the same region: divide and rule turns neighbors into enforcers, and armed rivals massacre too (Volhynia, the Chetnik massacres). For example, Ustaše Croats against Serbs at strength .95. A puppet regime's own enforcers (the Ustaše, the Hlinka Guard) act at least at `commitment × collaborator pool`, whatever the population thinks, and collaborators exist from 1941, so the trigger acts in the first year.
 - **Hunger** = quotas × group severity × German food pressure − harvest surplus, plus the Hunger Plan for marked peoples (1941–43). Above 0.5 it causes famine deaths and an event.
 - **Round-ups** scale with labor demand and group severity (bm), and are lower in allied (×0.1) and puppet (×0.5) states and where collaboration protects people.
 - **Supply by sponsor:**
@@ -250,6 +251,7 @@ For each group in each region:
   - `sSU` = Soviet support × rump strength × aff × Soviet reach × communist share, and only if the rump survives.
   - `sNE` = sum over conduits of neutral courage × nerve × (1 − neutral fear).
   - `westIdeo = 1 − comm × (1 − westPrag)` captures Western reluctance to arm communists. German interdiction scales the total down with `S`.
+- **Crisis compresses time.** Dissent moves toward its target at `0.25 + 0.5 × shock` a year, where shock is the worst of victimization, hunger, atrocity memory and expulsion; defiance moves at `0.35 + 0.5 × desperation`. Massacres change minds in months, not years.
 - **Private dissent `D`** moves toward a target made of:
   - identity strength; local brutality × racial classification; extraction; hunger; round-ups; atrocity memory; victimization; church war × religiosity; awareness;
   - minus co-optation, belief in German permanence (for groups rated "Germanic") and the titular discount;
@@ -264,8 +266,11 @@ For each group in each region:
   - a pragmatic one concedes.
   - NC reduces control and resource yield.
 - **Infighting** between communist and nationalist camps is worst with an even split and two rival sponsors. A diplomatic leader damps it.
-- **Armed strength `R`** follows logistic growth up to an **arms ceiling**: `cap × (0.42 + 0.58 × min(1, 2.5·supply + auxArms))`. Without a supplier, fighters are limited to captured weapons and to what defecting police and militia bring over: `auxArms = collabP × max(0, D − 0.5)` (Ukrainian auxiliary police joining the UPA in 1943, Slovak army units in 1944). Growth rises with defiance above a threshold, terrain, learning, a leader's generalship, supply, and draft evasion (round-ups × dissent × terrain). Nonviolence and infighting reduce it.
-- **Suppression** = garrison × suppW × terrain (eased by helicopters) × brutality × governor competence × governor and ruler generalship × German counterinsurgency learning × (1 − supply), and is weakened by a resistance general.
+- **Arms ceiling** = `cap × (0.42 + 0.58 × min(1, 2.5·supply)) + auxArms + caches`, at most 1. Only the first part can be eroded by indiscriminate violence; reprisals burn villages but cannot undo defections.
+  - `auxArms = 0.5 × collabP × clamp((D − 0.4)/0.4)`: the collaborator pool is also an arms pool. When dissent is high, armed auxiliaries defect with their weapons (Ukrainian police to the UPA in 1943).
+  - `caches = 0.3 × ARMS_CACHE[region] × (1 − years/10)`: weapons left when a national army dissolved in 1939–41 (Yugoslavia in April 1941, the Red Army in 1941, Greece, the arms the Home Army hid in 1939), running down over a decade. The same table raises starting armed strength by `0.12 × cache × (1 − collabP)`.
+- **Armed strength `R`** grows logistically toward the arms ceiling, plus **joining**: `rise × (desperation × A + max(0, A − θ)) × (1 − R/ceiling)`. People flee to the fighters when villages burn anyway (Kalyvas), and armed men rise when defiance passes their threshold (Montenegro, July 1941). Growth rises with defiance above a threshold, terrain, learning, a leader's generalship, supply, and draft evasion (round-ups × dissent × terrain). Nonviolence and infighting reduce it.
+- **Suppression** = garrison × suppW × terrain (eased by helicopters) × brutality × governor competence × governor and ruler generalship × German counterinsurgency learning × (1 − supply), and is weakened by a resistance general. A rising that holds open territory can be hit by conventional divisions: suppression is multiplied by `1 + crush × max(0, R − 0.4)`.
 - **Atrocity memory** accumulates from indiscriminate violence and decays slowly. Heavy indiscriminate pressure erodes the arms ceiling.
 - **Allied states** do not grow guerrillas the same way: their `R` tracks defiance, and they leave by **defection** instead. When an ally defects its army turns on the garrisons, so its peoples' `R` jumps to at least `0.3 + 0.4·D` and stays there.
 - **Ethnic Germans** never resist. They supply auxiliaries, and their numbers grow with settlement.
@@ -274,7 +279,8 @@ For each group in each region:
 A region's `R`, `A` and `NC` are population-weighted averages of its cells, excluding ethnic Germans. Population changes with famine and depopulation.
 - **Occupied, annexed and puppet regions** are **lost** after two years with `R ≥ 0.6`, and **retaken** if `R` falls below 0.35.
 - **Contested:** a minority (a group with 15–50% of the region) whose own `R ≥ 0.6` for two years holds its own districts, as the Serbs did in the Krajina and the Bosnian mountains, even though the population-weighted region average stays low. A contested region counts at half value for control and the 1970 classification, yields 40% less, and counts as half a loss for cohesion. It is cleared when that group's `R` falls below 0.35, and becomes simply lost if the whole region falls.
-- **Allies defect** when loyalty falls below 0.3 and there is an opening. Loyalty = `0.15 + 0.5·X + 0.25·cohesion + 0.25·commitment − 0.6·defiance − church war − succession shock + German ruler's diplomacy`. An opening means a strong nearby Soviet rump, German cohesion below 0.38, a diplomatic genius in charge of the ally, or an outside offer of supply **once the Reich looks beatable** (`X < 0.4` or cohesion below 0.55). Italy left in 1943 and Romania and Finland in 1944 when Germany was visibly losing, not when the Allies first made offers.
+- **Puppet armies defect** by the same test, with the titular group's defiance in place of the region's: the Slovak uprising of 1944 was mostly an army rising (18,000 soldiers growing to 47,000–60,000, against 2,000–18,000 partisans). The titular group's armed strength jumps to `0.3 + 0.4·D` and the region is lost; Germany can retake it as usual.
+- **Allies defect** when loyalty falls below 0.3 and there is an opening. Loyalty = `0.15 + 0.5·X + 0.25·cohesion + 0.25·commitment − 0.6·defiance − church war − succession shock + German ruler's diplomacy`. An opening means a strong nearby Soviet rump, German cohesion below 0.38, a diplomatic genius in charge of the ally, an outside offer of supply **once the Reich looks beatable** (`X < 0.4` or cohesion below 0.55), or a neighbor that switched within the last year during a Soviet push (rump strength above 0.35 and Soviet reach at least 0.3), as Romania's switch in August 1944 was followed by Slovakia's rising and Bulgaria's. Italy left in 1943 and Romania and Finland in 1944 when Germany was visibly losing, not when the Allies first made offers.
 
 ### 5.13 Allied and puppet rulers
 Mussolini, Horthy, Antonescu, Boris III, Ryti's government, Tiso, Pavelić and the Albanian cabinet each age and can die. A successor is usually less committed (×0.4–0.9). 3% are exceptional, with any commitment. A succession shocks loyalty for a year.
@@ -381,11 +387,17 @@ Cells are built from group presence entries with share > 0.02: 56 cells. Index t
 
 There is no ground truth after 1945, so calibration targets are judgment ranges grounded in 1941–45 behavior:
 - **Scenario totals:** share of runs Germany holds (hegemony or fraying) is 45–65% for historical, at least 93% for isolated, at least 88% for pragmatic and at most 30% for coldwar.
-- **Group targets:** the share of historical runs in which each group's armed resistance becomes a major force. For example, Serbs and Montenegrins 40–60%, Greeks 30–50%, Belarusians 35–60%, Poles 10–35%, French 5–20%, Norwegians 3–15%, Dutch and Danes 0–5%. The full list is `GROUP_TARGETS` in `scripts/calibrate.ts`.
+- **Group targets score timing.** A people is a major force in a year when its armed strength reaches 0.5 in any region where it lives. Each people with a historical record has a **by 1945** target, adjusted for how this scenario differs from history; peoples whose rising was broken also have an **in 1950** target (among runs where the regime stands); some have an **ever** target. Examples: Serbs 80–95% by 1945 and 25–50% in 1950; Montenegrins 60–90% and 10–35%; Western Ukrainians 15–40%; Croats 5–15% (no Italian capitulation, so no 1943 flood into the Partisans); Slovaks 3–15% by 1945 (their rising was an army defection timed to a Soviet advance that mostly never comes here).
+- **Region targets:** Norway lost in at most 20% of runs; the Low Countries and Luxembourg in at most 5%.
 
-Method: random global search, then local search over the `TUNE` constants: aOffset, aMax, fearW, despAtro, despBrut, growthThr, suppW, garScale and dBase. Several presets and targets are scored at once, so no single region dominates the fit.
+All targets and their written reasons are in `src/model/targets.ts`, and the UI shows each one against the current batch.
 
-**Rule:** if tuning can't reach a target, the problem is structural, so fix the mechanism rather than over-tune. §9 lists the ones already visible.
+Method: seeded random global search, then local search over the `TUNE` constants: aOffset, aMax, fearW, despAtro, despBrut, growthThr, suppW, garScale, dBase, rise, surge and crush. Several presets and targets are scored at once, so no single region dominates the fit.
+
+**Rules:**
+- If tuning can't reach a target, the problem is structural: fix the mechanism rather than over-tune.
+- 1941–45 is the only period with real data. Every group with a historical record gets a "by 1945" target adjusted for this scenario, and calibration scores timing as well as whether a group ever peaked.
+- A target is lowered only with a written reason tied to how this scenario differs from history. "The model produces 0%" is never a reason.
 
 ---
 

@@ -7,7 +7,7 @@ import { US_GOVS, UK_GOVS, SU_GOVS } from "../model/world";
 import { REGION_RESOURCES, RESOURCE_LABEL, RESOURCE_NOTES, CORE, NEUTRAL_TRADE, type ResourceId } from "../model/resources";
 import { GROUP_TARGETS, HOLD_TARGETS } from "../model/targets";
 import { GROUP_INDEX } from "../model/groups";
-import { f2, pct } from "./format";
+import { pct } from "./format";
 
 const f = (x: number) => x.toFixed(2).replace(/^0\./, ".");
 const range = ([lo, hi]: [number, number]) => `${Math.round(lo * 100)}–${Math.round(hi * 100)}%`;
@@ -203,22 +203,34 @@ function Calibration() {
         <p>This is a thinking tool, not a prediction. Every number in it is a judgment, and the point is to make those judgments explicit, inspectable and adjustable. There is no ground truth after 1945, so the psychology and force constants were tuned against judgment ranges grounded in how each people behaved from 1941 to 1945, plus scenario totals: with Nazi policy as it was, Germany holds Europe in {range(HOLD_TARGETS.historical)} of runs; with resistance abandoned, in at least {Math.round(HOLD_TARGETS.isolated[0] * 100)}%; with a pragmatic occupier, in at least {Math.round(HOLD_TARGETS.pragmatic[0] * 100)}%; with Cold War backing, in at most {Math.round(HOLD_TARGETS.coldwar[1] * 100)}%.</p>
         <p>If tuning cannot reach a target, the mechanism is wrong, and the fix belongs in the mechanism. Deliberately left out: the Pacific, decolonization, epidemics and climate cycles, each of which would add parameters with nothing to check them against.</p>
       </div>
+      <div className="prose">
+        <p>1941–45 is the only period with real data, so each people with a historical record has a target for whether it became a major force by 1945, adjusted for how this scenario differs from history. Where history shows a rising that was broken, there is also a target for 1950. Calibration scores the timing, not just whether a people ever peaked. A target is never lowered because the model produces less; each adjustment below names the scenario difference behind it.</p>
+      </div>
       <div className="tablewrap">
         <table>
-          <thead><tr><th>Group</th><th>Target: major force in</th><th>{live ? "This batch" : "Run the historical preset to compare"}</th></tr></thead>
+          <thead><tr><th>People</th><th>By 1945</th><th>In 1950</th><th>Ever</th><th>Why</th></tr></thead>
           <tbody>
-            {Object.entries(GROUP_TARGETS).map(([g, r]) => {
-              const v = live ? agg!.groupMajor[GROUP_INDEX[g]] : null;
-              const ok = v !== null && v >= r[0] - 0.005 && v <= r[1] + 0.005;
+            {Object.entries(GROUP_TARGETS).map(([g, tg]) => {
+              const k = GROUP_INDEX[g];
+              const cell = (r: [number, number] | undefined, v: number | null) => {
+                if (!r) return <td className="num">–</td>;
+                const ok = v !== null && v >= r[0] - 0.005 && v <= r[1] + 0.005;
+                return <td className="num">{range(r)}{v !== null && <> <span className={`pill ${ok ? "held" : "lost"}`}>{pct(v)}</span></>}</td>;
+              };
               return (
-                <tr key={g}><td>{GROUPS[GROUP_INDEX[g]].name}</td><td className="num">{range(r)}</td>
-                  <td className="num">{v === null ? "–" : <span className={`pill ${ok ? "held" : "lost"}`}>{pct(v)}</span>}</td></tr>
+                <tr key={g}>
+                  <td><strong>{GROUPS[k].name}</strong></td>
+                  {cell(tg.by1945, live ? agg!.groupBy1945[k] : null)}
+                  {cell(tg.in1950, live ? agg!.groupIn1950[k] : null)}
+                  {cell(tg.ever, live ? agg!.groupMajor[k] : null)}
+                  <td>{tg.why}</td>
+                </tr>
               );
             })}
           </tbody>
         </table>
       </div>
-      <p className="hint">Major force means armed strength of 0.5 or more somewhere. {live ? `In this batch, median control in 1970 is ${f2(agg!.control.med[29])}%.` : ""}</p>
+      <p className="hint">Major force means armed strength of 0.5 or more in any region where the people lives. In 1950 counts only runs where the regime still stands. {live ? "Pills show this batch: green inside the target, red outside." : "Switch to the historical preset to compare this batch with the targets."}</p>
     </section>
   );
 }

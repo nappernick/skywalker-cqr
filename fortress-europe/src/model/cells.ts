@@ -57,3 +57,13 @@ export const HARVEST_ZONE: Record<string, number> = {
   svn: 2, hrv: 2, bih: 2, srb: 2, mne: 2, mkd: 2, kos: 2, alb: 2, grc: 2, ita: 2, bgr: 2,
 };
 export const NZONES = 3;
+
+/**
+ * Weapons left behind when a national army dissolved in 1939–41: Yugoslavia in April 1941, when soldiers went home
+ * with their rifles; the Red Army's collapse in 1941; Greece in April 1941; the Polish arms the Home Army hid in 1939.
+ * 1 is a whole army melting into the countryside.
+ */
+export const ARMS_CACHE: Record<string, number> = {
+  srb: 1, mne: 1, bih: 0.9, hrv: 0.6, svn: 0.5, mkd: 0.5, kos: 0.4,
+  blr: 1, ukr: 0.8, ltu: 0.3, lva: 0.3, est: 0.2, grc: 0.5, pol: 0.4,
+};
