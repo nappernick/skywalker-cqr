@@ -39,15 +39,15 @@ const sigmoid = (z: number): number => 1 / (1 + Math.exp(-z));
 
 /** Psychology and force constants, set by scripts/calibrate.ts against all-group targets. */
 export const TUNE = {
-  aOffset: 0.143,
-  aMax: 0.646,
-  fearW: 0.406,
-  despAtro: 0.441,
-  despBrut: 0.178,
-  growthThr: 0.178,
-  suppW: 0.573,
+  aOffset: 0.036,
+  aMax: 0.785,
+  fearW: 0.485,
+  despAtro: 0.291,
+  despBrut: 0.4,
+  growthThr: 0.252,
+  suppW: 0.46,
   garScale: 3.2,
-  dBase: 0.22,
+  dBase: 0.099,
   rise: 0.6,
   surge: 2,
   crush: 8,
@@ -689,9 +689,13 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
           const caches = 0.3 * (ARMS_CACHE[reg.id] ?? 0) * Math.max(0, 1 - t / 10);
           const armsCap = Math.min(1, cCap[i] * (0.42 + 0.58 * Math.min(1, supply * 2.5)) + auxArms + caches);
           const gen = L ? 1 + 0.5 * L.general * L.force : 1;
+          // Exile-led movements wait for a liberator before fighting in the open (the Home Army, the Chetniks, de Gaulle's
+          // networks), unless one is near or the Reich looks beatable. Communist-led ones do not wait.
+          const liberator = (rumpAlive && K > 0.6 && reg.sovReach >= 0.4) || X < 0.3 || coh < 0.4;
+          const wait = liberator ? 0 : g.exile * (1 - g.comm);
           const growth = (0.55 * cR[i] * (1 - cR[i] / armsCap) * (cA[i] - TUNE.growthThr) * (0.6 + 0.6 * c.terrain) * (1 + 0.3 * cLearn[i]) * gen
             + 0.1 * supply * cA[i] + 0.015 * cA[i] + 0.05 * roundup * cD[i] * c.terrain
-            + TUNE.rise * (desperation * cA[i] + Math.max(0, cA[i] - theta)) * Math.max(0, 1 - cR[i] / armsCap)) * (1 - 0.7 * nonviol) - 0.06 * infight * cR[i];
+            + TUNE.rise * (desperation * cA[i] + Math.max(0, cA[i] - theta)) * Math.max(0, 1 - cR[i] / armsCap)) * (1 - 0.7 * nonviol) * (1 - wait) - 0.06 * infight * cR[i];
           const supp = garD * TUNE.suppW * (1 - 0.55 * c.terrain * (1 - heli)) * (0.75 + 0.5 * brutLocal) * (0.6 + 0.8 * comp)
             * (1 + 0.3 * (gt.general - 0.4)) * (1 + 0.4 * learnG) * (1 + 0.15 * (T.general - 0.4)) * Math.min(1, cR[i] * 4) * (1 - 0.5 * supply)
             * (L ? 1 - 0.3 * L.general * L.force : 1)
@@ -706,8 +710,10 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
         } else if (!lost[r]) {
           cR[i] = clamp(cR[i] + 0.1 * (cA[i] * 0.6 - cR[i]) + gauss(rng) * 0.01, 0, 1);
         }
-        // A puppet regime's own enforcers (the Ustaše, the Hlinka Guard) act as hard as the regime is committed, whatever the population thinks.
-        colActNext[i] = Math.max(titular && allyKey ? allyCommit[allyKey] * g.collabP : 0, clamp(colLocal * g.collabP * (1 - 0.6 * cD[i]) * (0.5 + 0.5 * X), 0, 1));
+        // A puppet regime's own enforcers (the Ustaše, the Hlinka Guard) act as hard as the regime is committed, whatever the
+        // population thinks, unless a competent, unzealous German envoy reins them in because they feed the uprising.
+        const restraint = gov.faction === "ally" ? 0 : gov.competence * (1 - gov.zeal);
+        colActNext[i] = Math.max(titular && allyKey ? allyCommit[allyKey] * g.collabP * (1 - restraint) : 0, clamp(colLocal * g.collabP * (1 - 0.6 * cD[i]) * (0.5 + 0.5 * X), 0, 1));
         if (cR[i] > groupPeak[c.g]) groupPeak[c.g] = cR[i];
         recordCell(t, i, sUS, sUK, sEX, sSU, sNE, fear, vict, hunger);
       }
