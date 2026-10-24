@@ -27,8 +27,8 @@ export interface Group {
   /** Strength of an exile government or diaspora that funds the group's resistance. */
   exile: number;
   exileName: string;
-  /** Where the group lives: [region id, share of that region's population]. */
-  presence: [string, number][];
+  /** Where the group lives: [region id, share of that region's population, optional terrain of its own districts]. */
+  presence: [string, number, number?][];
   notes: string;
 }
 
@@ -146,8 +146,8 @@ export const CF = { R: 0, A: 1, D: 2, FEAR: 3, VICT: 4, S_US: 5, S_UK: 6, S_EX: 
 export const NCF = 14;
 
 /** Per region per year fields. */
-export const RF = { LOST: 0, R: 1, A: 2, GOV: 3, GAR: 4 } as const;
-export const NRF = 5;
+export const RF = { LOST: 0, R: 1, A: 2, GOV: 3, GAR: 4, CONT: 5 } as const;
+export const NRF = 6;
 
 /** Global per year fields. */
 export const GF = {
@@ -170,6 +170,8 @@ export interface RunResult {
   events: SimEvent[];
   /** Regions taken by resistance or defection before the run ended. */
   lostByResistance: boolean[];
+  /** Regions where a minority insurgency came to hold its own districts. */
+  contestedEver: boolean[];
   /** Highest armed strength each group reached anywhere. */
   groupPeak: number[];
   heydrichAlive: boolean;
@@ -193,6 +195,8 @@ export interface Aggregate {
   /** [year][region] share of runs where Germany holds the region. */
   heldShare: number[][];
   lostShare: number[];
+  /** [region] share of runs in which a minority insurgency contested the region. */
+  contestedShare: number[];
   /** [group] share of runs where the group's resistance becomes a major force (strength ≥ 0.5). */
   groupMajor: number[];
   hitlerDead: number[];

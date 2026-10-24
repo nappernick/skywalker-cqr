@@ -86,6 +86,7 @@ export function aggregate(runs: RunResult[]): Aggregate {
     regionR,
     heldShare,
     lostShare: REGIONS.map((_, i) => runs.filter((r) => r.lostByResistance[i]).length / n),
+    contestedShare: REGIONS.map((_, i) => runs.filter((r) => r.contestedEver[i]).length / n),
     groupMajor: GROUPS.map((_, g) => runs.filter((r) => r.groupPeak[g] >= 0.5).length / n),
     hitlerDead: share((r, t) => rulerAt(r, t)?.kind !== "founder"),
     churchWar: share((r, t) => r.glob[t * NGF + GF.CHURCH] > 0.05),

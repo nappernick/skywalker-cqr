@@ -34,7 +34,7 @@ export const GROUPS: Group[] = [
   G({ id: "bel", name: "Belarusians", classLabel: "Slav, to be removed", bm: 1, ident: 0.45, collabP: 0.25, theta: 0.32, comm: 0.85, polar: 0.3, rel: 0.4, exile: 0.05, exileName: "almost none",
     presence: [["blr", 0.82]], notes: "Weak national identity but forests and marshes. Soviet partisans held about 60% of Belarus by the end of 1943." }),
   G({ id: "wuk", name: "Western Ukrainians", classLabel: "Slav, to be removed", bm: 0.95, ident: 0.8, collabP: 0.5, theta: 0.28, comm: 0.05, polar: 0.3, rel: 0.85, exile: 0.4, exileName: "the Ukrainian diaspora",
-    presence: [["ukr", 0.22]], notes: "Galicia and Volhynia, formerly Polish. The nationalist OUN and UPA fought Germans, Poles and Soviets in turn." }),
+    presence: [["ukr", 0.22, 0.65]], notes: "Galicia and Volhynia, formerly Polish. The nationalist OUN and UPA fought Germans, Poles and Soviets in turn from the Volhynian forests and Carpathian foothills, far rougher ground than the eastern steppe." }),
   G({ id: "euk", name: "Eastern Ukrainians", classLabel: "Slav, to be removed", bm: 1, ident: 0.55, collabP: 0.35, theta: 0.38, comm: 0.7, polar: 0.5, rel: 0.4, exile: 0.1, exileName: "almost none",
     presence: [["ukr", 0.6]], notes: "Some greeted the Germans after the 1932–33 famine. Starvation and labor round-ups reversed that within a year." }),
   G({ id: "rus", name: "Russians in the occupied west", classLabel: "Slav, to be removed", bm: 1, ident: 0.6, collabP: 0.2, theta: 0.3, comm: 0.85, polar: 0.2, rel: 0.35, exile: 0.05, exileName: "almost none",

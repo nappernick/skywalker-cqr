@@ -7,10 +7,12 @@ export interface Cell {
   g: number;
   r: number;
   share: number;
+  /** Terrain where this group actually lives, when it differs from the region's average. */
+  terrain: number;
 }
 
 export const CELLS: Cell[] = GROUPS.flatMap((grp, g) =>
-  grp.presence.filter(([, s]) => s > 0.02).map(([rid, share]) => ({ g, r: REGION_INDEX[rid], share })),
+  grp.presence.filter(([, s]) => s > 0.02).map(([rid, share, terrain]) => ({ g, r: REGION_INDEX[rid], share, terrain: terrain ?? REGIONS[REGION_INDEX[rid]].terrain })),
 );
 export const NC = CELLS.length;
 

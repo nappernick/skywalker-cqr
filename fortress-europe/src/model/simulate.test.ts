@@ -7,7 +7,8 @@ import { GROUPS } from "./groups";
 import { CELLS, NC, CELLS_OF_REGION } from "./cells";
 import { DEFAULT_AFF } from "./sponsors";
 import { mortality } from "./people";
-import { CF, NCF, GF, NGF, type Params } from "./types";
+import { CF, NCF, RF, NRF, GF, NGF, type Params } from "./types";
+import { handle } from "../engine";
 
 const paramsFor = (id: string, extra: Partial<Params> = {}): Params => ({
   ...DEFAULT_PARAMS,
@@ -36,6 +37,10 @@ describe("data integrity", () => {
   test("every sponsor has an attitude toward every group", () => {
     for (const s of ["us", "uk", "su"] as const)
       for (const g of GROUPS) if (g.id !== "vdt") expect(DEFAULT_AFF[s][g.id]).toBeDefined();
+  });
+
+  test("every cell's terrain is between 0 and 1", () => {
+    for (const c of CELLS) { expect(c.terrain).toBeGreaterThanOrEqual(0); expect(c.terrain).toBeLessThanOrEqual(1); }
   });
 
   test("mortality rises with age", () => {
@@ -92,5 +97,29 @@ describe("simulation", () => {
     snub.aff.su.mon = 0;
     const gi = GROUPS.findIndex((g) => g.id === "ser");
     expect(aggregate(runBatch(snub)).groupMajor[gi]).toBeLessThanOrEqual(aggregate(runBatch(base)).groupMajor[gi]);
+  });
+});
+
+describe("regions", () => {
+  test("a region is never both lost and contested", () => {
+    for (const r of runBatch(paramsFor("historical", { runs: 60 })))
+      for (let t = 0; t < YEARS; t++)
+        for (let i = 0; i < REGIONS.length; i++) {
+          const o = (t * REGIONS.length + i) * NRF;
+          expect(r.regions[o + RF.LOST] > 0.5 && r.regions[o + RF.CONT] > 0.5).toBe(false);
+        }
+  });
+});
+
+describe("engine", () => {
+  test("a batch returns one summary per run, and any run can be fetched", () => {
+    const done = handle({ type: "run", token: 1, params: paramsFor("historical", { runs: 12 }) });
+    expect(done?.msg.type).toBe("done");
+    if (done?.msg.type !== "done") return;
+    expect(done.msg.summaries.length).toBe(12);
+    expect(done.msg.agg.total).toBe(12);
+    const got = handle({ type: "get", token: 1, id: 7 });
+    expect(got?.msg.type === "run" && got.msg.run.id).toBe(7);
+    expect(handle({ type: "get", token: 1, id: 99 })).toBeNull();
   });
 });

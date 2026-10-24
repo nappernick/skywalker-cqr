@@ -39,15 +39,15 @@ const sigmoid = (z: number): number => 1 / (1 + Math.exp(-z));
 
 /** Psychology and force constants, set by scripts/calibrate.ts against all-group targets. */
 export const TUNE = {
-  aOffset: 0.08,
-  aMax: 0.8,
-  fearW: 0.35,
-  despAtro: 0.35,
-  despBrut: 0.2,
-  growthThr: 0.18,
-  suppW: 0.32,
-  garScale: 1.6,
-  dBase: 0.1,
+  aOffset: 0.156,
+  aMax: 0.586,
+  fearW: 0.389,
+  despAtro: 0.352,
+  despBrut: 0.153,
+  growthThr: 0.138,
+  suppW: 0.534,
+  garScale: 3,
+  dBase: 0.2,
 };
 
 const FACTIONS: FactionId[] = ["ss", "party", "wehr", "tech", "goring"];
@@ -212,6 +212,9 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
   const lost = new Array(NR).fill(false);
   const lostByResistance = new Array(NR).fill(false);
   const streak = new Array(NR).fill(0);
+  const cStreak = new Array(NR).fill(0);
+  const contested = new Array(NR).fill(false);
+  const contestedEver = new Array(NR).fill(false);
   const regR = new Float64Array(NR);
   const regA = new Float64Array(NR);
   const regNC = new Float64Array(NR);
@@ -409,7 +412,7 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
     REGIONS.forEach((r, i) => {
       const rr = REGION_RESOURCES[r.id];
       if (!rr || lost[i]) return;
-      const work = (1 - 0.6 * regR[i]) * (1 - 0.5 * regNC[i]) * (r.kind === "ally" ? 0.85 : 0.6 + 0.4 * extrEff);
+      const work = (contested[i] ? 0.6 : 1) * (1 - 0.6 * regR[i]) * (1 - 0.5 * regNC[i]) * (r.kind === "ally" ? 0.85 : 0.6 + 0.4 * extrEff);
       for (const k of RES) {
         const v = rr[k];
         if (v) supplyRes[k] += v * work * (k === "food" ? harvest[HARVEST_ZONE[r.id]] : 1);
@@ -507,7 +510,9 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
 
     // 11. Cells: identity-group psychology inside each region
     let newLosses = 0;
+    let newLossVal = 0;
     let newGains = 0;
+    let newGainVal = 0;
     const colActNext = new Float64Array(NC);
     for (let r = 0; r < NR; r++) {
       const reg = REGIONS[r];
@@ -535,11 +540,13 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
           continue;
         }
         const titular = reg.titular === g.id;
+        // A puppet that serves Berlin wholeheartedly earns its own people little national credit.
+        const legit = titular && allyKey ? 1 - allyCommit[allyKey] : 1;
         const leaderIdx = groupLeader[c.g];
         const L = leaderIdx >= 0 ? resLeaders[leaderIdx].talent : null;
-        const brutLocal = clamp((ally ? brutEff * 0.25 : brutEff + (zeal - 0.5) * 0.4) * (titular ? 0.4 : 1), 0, 1);
+        const brutLocal = clamp((ally ? brutEff * 0.25 : brutEff + (zeal - 0.5) * 0.4) * (titular ? 0.6 : 1), 0, 1);
         const indisc = brutLocal * (1 - 0.6 * comp);
-        const colLocal = clamp(colEff + 0.15 * comp * (1 - zeal) + 0.1 * (gt.diplomat - 0.4) + (titular ? 0.25 : 0), 0, 1);
+        const colLocal = clamp(colEff + 0.15 * comp * (1 - zeal) + 0.1 * (gt.diplomat - 0.4) + (titular ? 0.25 * legit : 0), 0, 1);
 
         // Victimization by rival groups' collaborators: divide and rule turns neighbors into enforcers.
         let vict = 0;
@@ -602,7 +609,7 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
         const allyLoad = (ally ? frontDrain * 0.3 + extrEff * 0.1 : 0) + (allyKey ? allyShock[allyKey] * 0.3 : 0);
         const dTarget = TUNE.dBase + g.ident * 0.38 + brutLocal * g.bm * 0.38 + extrEff * 0.12 * (0.4 + 0.6 * g.bm)
           + hunger * 0.3 + roundup * 0.18 + cAtro[i] * 0.25 + vict * 0.35 + church * g.rel * 0.2 + aware * (0.05 + 0.1 * marked)
-          - colLocal * (0.1 + 0.35 * g.collabP) - X * 0.15 * (1 - g.bm) + cGen[i] - (titular ? 0.15 : 0) + allyLoad
+          - colLocal * (0.1 + 0.35 * g.collabP) - X * 0.15 * (1 - g.bm) + cGen[i] - (titular ? 0.15 * legit : 0) + allyLoad
           - 0.05 * (gt.orator - 0.4) * (ally ? 0 : 1);
         cD[i] += 0.25 * (clamp(dTarget, 0, 1) - cD[i]);
 
@@ -612,7 +619,7 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
         const odds = clamp(cR[i] * 0.7 + (1 - X) * 0.5 + supply * 0.3 + INFO * 0.15 * regA[r] + 0.2 * thaw, 0, 1);
         // Indiscriminate violence removes the safety of staying passive (Kalyvas).
         const desperation = clamp(cAtro[i] * TUNE.despAtro + indisc * g.bm * TUNE.despBrut + hunger * 0.25 + vict * 0.3
-          + aware * marked * 0.2 + roundup * 0.15 + gpoHit * 4, 0, 1) * (0.35 + 0.65 * reg.terrain) * (cR[i] > 0.03 ? 1 : 0.4);
+          + aware * marked * 0.2 + roundup * 0.15 + gpoHit * 4, 0, 1) * (0.35 + 0.65 * c.terrain) * (cR[i] > 0.03 ? 1 : 0.4);
         const theta = g.theta - (L ? 0.12 * L.orator * L.force : 0);
         const aTarget = cD[i] * TUNE.aMax * sigmoid((odds + desperation - theta - TUNE.fearW * fear + TUNE.aOffset) / 0.08);
         const prevA = cA[i];
@@ -647,26 +654,29 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
           logged[i].snub = true;
           say(y, "sponsor", `${reg.name}: the Soviet rump state could reach the ${g.name} but refuses to arm them, seeing a future enemy.`, reg.id);
         }
-        if (!logged[i].labor && !ally && roundup * cD[i] > 0.3 && reg.terrain > 0.3) {
+        if (!logged[i].labor && !ally && roundup * cD[i] > 0.3 && c.terrain > 0.3) {
           logged[i].labor = true;
           say(y, "labor", `${reg.name}: labor round-ups send young ${g.name} into hiding. Many end up with the armed bands in the hills and forests.`, reg.id);
         }
 
         if (!ally) {
-          const armsCap = cCap[i] * (0.42 + 0.58 * Math.min(1, supply * 2.5));
+          // Without a supplier, fighters arm themselves with captured weapons and with what defecting
+          // police and militia bring over (Ukrainian auxiliaries joining the UPA in 1943, Slovak army units in 1944).
+          const auxArms = g.collabP * Math.max(0, cD[i] - 0.5);
+          const armsCap = cCap[i] * (0.42 + 0.58 * Math.min(1, supply * 2.5 + auxArms));
           const gen = L ? 1 + 0.5 * L.general * L.force : 1;
-          const growth = (0.55 * cR[i] * (1 - cR[i] / armsCap) * (cA[i] - TUNE.growthThr) * (0.6 + 0.6 * reg.terrain) * (1 + 0.3 * cLearn[i]) * gen
-            + 0.1 * supply * cA[i] + 0.015 * cA[i] + 0.05 * roundup * cD[i] * reg.terrain) * (1 - 0.7 * nonviol) - 0.06 * infight * cR[i];
-          const supp = garD * TUNE.suppW * (1 - 0.55 * reg.terrain * (1 - heli)) * (0.75 + 0.5 * brutLocal) * (0.6 + 0.8 * comp)
+          const growth = (0.55 * cR[i] * (1 - cR[i] / armsCap) * (cA[i] - TUNE.growthThr) * (0.6 + 0.6 * c.terrain) * (1 + 0.3 * cLearn[i]) * gen
+            + 0.1 * supply * cA[i] + 0.015 * cA[i] + 0.05 * roundup * cD[i] * c.terrain) * (1 - 0.7 * nonviol) - 0.06 * infight * cR[i];
+          const supp = garD * TUNE.suppW * (1 - 0.55 * c.terrain * (1 - heli)) * (0.75 + 0.5 * brutLocal) * (0.6 + 0.8 * comp)
             * (1 + 0.3 * (gt.general - 0.4)) * (1 + 0.4 * learnG) * (1 + 0.15 * (T.general - 0.4)) * Math.min(1, cR[i] * 4) * (1 - 0.5 * supply)
             * (L ? 1 - 0.3 * L.general * L.force : 1);
           cAtro[i] = clamp(cAtro[i] + indisc * g.bm * (cR[i] > 0.1 ? 0.07 : 0.025) - 0.03, 0, 1);
-          if (cR[i] > 0.12) cCap[i] = clamp(cCap[i] - indisc * g.bm * 0.035 * (1 - supply) * (1 - reg.terrain * 0.4), 0.25, 1);
+          if (cR[i] > 0.12) cCap[i] = clamp(cCap[i] - indisc * g.bm * 0.035 * (1 - supply) * (1 - c.terrain * 0.4), 0.25, 1);
           else cCap[i] = clamp(cCap[i] + 0.01, 0.25, 1);
           cR[i] = clamp(cR[i] + growth - supp + gauss(rng) * 0.018, 0, 1);
           cLearn[i] = clamp(cLearn[i] + (cR[i] > 0.1 ? 0.03 : -0.02), 0, 1);
           if (L && L.violence > 0.75) for (const [j, k] of RIVALS_OF_CELL[i]) cAtro[j] = clamp(cAtro[j] + 0.03 * k * cR[i], 0, 1);
-        } else {
+        } else if (!lost[r]) {
           cR[i] = clamp(cR[i] + 0.1 * (cA[i] * 0.6 - cR[i]) + gauss(rng) * 0.01, 0, 1);
         }
         colActNext[i] = clamp(colLocal * g.collabP * (1 - 0.6 * cD[i]) * (0.5 + 0.5 * X), 0, 1);
@@ -687,21 +697,35 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
 
       if (!ally) {
         streak[r] = regR[r] >= 0.6 ? streak[r] + 1 : 0;
+        // A minority insurgency cannot take the whole region, but it can hold its own districts (the Serb Krajina, the Bosnian mountains).
+        let topR = 0; let topCell = -1;
+        for (const i of cs) if (GROUPS[CELLS[i].g].id !== "vdt" && CELLS[i].share >= 0.15 && CELLS[i].share < 0.5 && cR[i] > topR) { topR = cR[i]; topCell = i; }
+        cStreak[r] = topR >= 0.6 ? cStreak[r] + 1 : 0;
         if (!lost[r] && streak[r] >= 2) {
-          lost[r] = true; lostByResistance[r] = true; newLosses++;
+          lost[r] = true; lostByResistance[r] = true; newLosses++; newLossVal += reg.value * (contested[r] ? 0.5 : 1);
+          contested[r] = false;
           say(y, "loss", `${reg.name}: resistance forces now hold and govern territory. Germany has effectively lost the region.`, reg.id);
         } else if (lost[r] && regR[r] < 0.35) {
-          lost[r] = false; newGains++;
+          lost[r] = false; newGains++; newGainVal += reg.value;
           say(y, "gain", `${reg.name}: German forces retake the region after a long counterinsurgency${brutEff > 0.7 ? " of mass reprisals and deportations" : ""}.`, reg.id);
+        } else if (!lost[r] && !contested[r] && cStreak[r] >= 2) {
+          contested[r] = true; contestedEver[r] = true; newLosses++; newLossVal += reg.value * 0.5;
+          say(y, "loss", `${reg.name}: ${GROUPS[CELLS[topCell].g].name} insurgents hold whole districts. The region is contested; German writ ends at the edge of the towns.`, reg.id);
+        } else if (contested[r] && topR < 0.35) {
+          contested[r] = false; newGains++; newGainVal += reg.value * 0.5;
+          say(y, "gain", `${reg.name}: German and auxiliary forces clear the insurgent districts.`, reg.id);
         }
       } else if (!lost[r]) {
         const majorRel = cs.reduce((m, i) => Math.max(m, GROUPS[CELLS[i].g].rel), 0);
-        const loyalty = 0.2 + X * 0.4 + coh * 0.25 + allyCommit[allyKey] * 0.25 - regA[r] * 0.6 - church * majorRel * 0.1 - allyShock[allyKey] + 0.1 * (T.diplomat - 0.45);
+        const loyalty = 0.15 + X * 0.5 + coh * 0.25 + allyCommit[allyKey] * 0.25 - regA[r] * 0.6 - church * majorRel * 0.1 - allyShock[allyKey] + 0.1 * (T.diplomat - 0.45);
         let sup = 0;
         for (const i of cs) sup = Math.max(sup, cellRec[(t * NC + i) * NCF + CF.S_US] + cellRec[(t * NC + i) * NCF + CF.S_UK] + cellRec[(t * NC + i) * NCF + CF.S_SU]);
-        const opening = sup > 0.12 || coh < 0.38 || (rumpAlive && K > 0.5 && reg.sovReach >= 0.4) || allyDiplomat[allyKey] > 0.8;
+        // An outside offer only matters once the Reich looks beatable, as in 1943 for Italy and 1944 for Romania and Finland.
+        const opening = (sup > 0.12 && (X < 0.4 || coh < 0.55)) || coh < 0.38 || (rumpAlive && K > 0.5 && reg.sovReach >= 0.4) || allyDiplomat[allyKey] > 0.8;
         if (loyalty < 0.3 && opening) {
-          lost[r] = true; lostByResistance[r] = true; newLosses++;
+          lost[r] = true; lostByResistance[r] = true; newLosses++; newLossVal += reg.value;
+          // The national army turns on the German garrisons: the allied people is now armed against the Reich.
+          for (const i of cs) if (GROUPS[CELLS[i].g].id !== "vdt") cR[i] = Math.max(cR[i], 0.3 + 0.4 * cD[i]);
           say(y, "loss", `${reg.name} breaks with Germany. Its rulers decide the Reich is no longer the winning side, switch allegiance and turn their army on the German garrisons.`, reg.id);
         }
       }
@@ -764,7 +788,7 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
       let maxA = 0; let maxR = 0; let regionName = "";
       for (let i = 0; i < NC; i++) if (CELLS[i].g === g) { if (cA[i] > maxA) { maxA = cA[i]; regionName = REGIONS[CELLS[i].r].name; } maxR = Math.max(maxR, cR[i]); }
       if (li < 0) {
-        if (rng() < 0.001 + 0.006 * maxA) {
+        if (rng() < 0.0003 + 0.0015 * maxA) {
           const tal = drawTalent(rng, { comp: 0.7, violence: 0.5, ideology: 0.5 }, 1);
           const nonv = tal.violence < 0.25;
           const name = `${EXCEPTIONAL_LABEL[topSkill(tal)]} among the ${GROUPS[g].name}`;
@@ -778,12 +802,13 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
     }
 
     // 15. Cohesion, the home front, and expectations
-    const lostCount = lost.filter(Boolean).length;
+    // Losses hurt in proportion to what they are worth: Montenegro is not France.
+    const lostVal = REGIONS.reduce((s, r, i) => s + (lost[i] ? r.value : contested[i] ? 0.5 * r.value : 0), 0);
     const homeFront = 0.12 * (ratio.food - 1) + 0.06 * (S - 1);
     const cohTarget = 0.78 + homeFront + 0.1 * (fervor - 0.7) + 0.04 * (T.orator - 0.5);
-    coh = clamp(coh + 0.035 * (cohTarget - coh) - newLosses * 0.07 + newGains * 0.03 - lostCount * 0.006 - 0.03 * thaw + gauss(rng) * 0.015, 0, 1);
+    coh = clamp(coh + 0.035 * (cohTarget - coh) - newLosses * 0.015 - newLossVal * 0.5 + newGains * 0.01 + newGainVal * 0.2 - lostVal * 0.05 - 0.03 * thaw + gauss(rng) * 0.015, 0, 1);
     const xCeil = 0.95 - 0.3 * INFO;
-    X = clamp(X + (newLosses === 0 ? 0.03 * (xCeil - X) : 0) - newLosses * 0.08 + newGains * 0.03 - 0.04 * thaw, 0.05, 0.95);
+    X = clamp(X + (newLosses === 0 ? 0.03 * (xCeil - X) : 0) - newLosses * 0.02 - newLossVal * 0.5 + newGains * 0.01 + newGainVal * 0.2 - 0.04 * thaw, 0.05, 0.95);
     learnG = clamp(learnG + 0.02 * (regR.reduce((n, v) => n + (v > 0.2 ? 1 : 0), 0) / NR) * (0.5 + T.competence), 0, 1);
     prevLosses = newLosses;
 
@@ -794,7 +819,7 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
     }
 
     let control = 0;
-    REGIONS.forEach((r, i) => { control += r.value * (lost[i] ? 0 : (1 - regR[i]) * (1 - 0.4 * regNC[i])); });
+    REGIONS.forEach((r, i) => { control += r.value * (lost[i] ? 0 : (contested[i] ? 0.5 : 1) * (1 - regR[i]) * (1 - 0.4 * regNC[i])); });
     for (let r = 0; r < NR; r++) {
       const o = (t * NR + r) * NRF;
       regRec[o + RF.LOST] = lost[r] ? 1 : 0;
@@ -802,6 +827,7 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
       regRec[o + RF.A] = regA[r];
       regRec[o + RF.GOV] = govIdxOfRegion(r);
       regRec[o + RF.GAR] = gar[r];
+      regRec[o + RF.CONT] = contested[r] ? 1 : 0;
     }
     const gg = t * NGF;
     glob[gg + GF.S] = S; glob[gg + GF.COH] = coh; glob[gg + GF.X] = X; glob[gg + GF.CTRL] = control * 100;
@@ -844,7 +870,7 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
   for (let t = lastT + 1; t < YEARS; t++) {
     cellRec.copyWithin(t * NC * NCF, lastT * NC * NCF, (lastT + 1) * NC * NCF);
     regRec.copyWithin(t * NR * NRF, lastT * NR * NRF, (lastT + 1) * NR * NRF);
-    for (let r = 0; r < NR; r++) regRec[(t * NR + r) * NRF + RF.LOST] = 1;
+    for (let r = 0; r < NR; r++) { regRec[(t * NR + r) * NRF + RF.LOST] = 1; regRec[(t * NR + r) * NRF + RF.CONT] = 0; }
     glob.copyWithin(t * NGF, lastT * NGF, (lastT + 1) * NGF);
     const gd = t * NGF;
     glob[gd + GF.COH] = 0; glob[gd + GF.X] = 0; glob[gd + GF.CTRL] = 0; glob[gd + GF.ENDED] = 1;
@@ -854,7 +880,7 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
 
   if (!outcome) {
     let heldVal = 0;
-    REGIONS.forEach((r, i) => { if (!lost[i] && regR[i] < 0.5) heldVal += r.value; });
+    REGIONS.forEach((r, i) => { if (!lost[i] && regR[i] < 0.5) heldVal += r.value * (contested[i] ? 0.5 : 1); });
     outcome = heldVal >= 0.8 && coh > 0.4 ? "hegemony" : heldVal >= 0.5 ? "fraying" : "rollback";
     const text: Record<string, string> = {
       hegemony: "The Reich still holds Europe from the Atlantic to the Urals. Resistance survives only in pockets.",
@@ -867,7 +893,7 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
 
   return {
     id, outcome, endYear, cells: cellRec, regions: regRec, glob, govs, rulers, resLeaders, events,
-    lostByResistance, groupPeak, heydrichAlive,
+    lostByResistance, contestedEver, groupPeak, heydrichAlive,
   };
 }
 
