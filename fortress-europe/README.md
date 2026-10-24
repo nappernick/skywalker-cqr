@@ -73,7 +73,7 @@ The bun binary used during development was 1.4.4 at `~/.bun/bin/bun`.
 ## 3. Project layout
 
 ```
-app/
+fortress-europe/
   package.json          bun scripts; dependencies (React 18.3.1, Vite 5.4.11, d3-geo, topojson, zustand…)
   bun.lock
   tsconfig.json         strict, noUnused*, bundler resolution, types: vite/client + bun-types
@@ -82,8 +82,20 @@ app/
   legacy/fortress-europe-v1.html   the earlier single-file version (6 regions, no identity groups)
   scripts/
     report.ts           scenario summary: outcomes, control, group and region results
-    calibrate.ts        random search over TUNE against all targets at once
+    calibrate.ts        seeded random search over TUNE against all targets at once
     tables.ts           prints data tables as Markdown
+    strip.ts            post-build: dist/index.html → dist/artifact.html for publishing
+  src/
+    main.tsx, App.tsx   page entry and layout
+    store.ts            zustand store: params, batch results, mode, run, year, playback, region
+    engine.ts           runs a batch and serves single runs; used by the worker, or on the main thread if workers are blocked
+    worker.ts           thin worker around engine.ts
+    protocol.ts         messages between page and engine
+  src/ui/
+    view.ts             one read interface over batch medians ("average") or a single run
+    geo.ts              map geometry from world-atlas, built once
+    Rail, Verdict, Watch, MapView, YearPanel, RegionDetail, Charts, Chronicle, Explainer (.tsx)
+    styles.css          v1 design tokens, light and dark
   src/model/
     types.ts            every type, plus the Float32Array field layouts (CF, RF, GF)
     regions.ts          29 regions: geography, reach, conduits, garrison priority, START/END
@@ -94,6 +106,7 @@ app/
     people.ts           governors, zones, archetypes, Hitler and heirs, cohort labels, allied rulers, mortality
     world.ts            historical US, UK and Soviet governments and their support multipliers
     presets.ts          default parameters and the four scenarios
+    targets.ts          calibration targets, shared by calibrate.ts and the UI
     simulate.ts         the engine
     aggregate.ts        batch statistics
     simulate.test.ts    tests
@@ -222,9 +235,11 @@ Historical basis:
 For each group in each region:
 
 - **Local policy:**
-  - `brutLocal` = effective brutality, shifted by governor zeal; ×0.25 in allied states; ×0.4 for a puppet state's titular group.
+  - `brutLocal` = effective brutality, shifted by governor zeal; ×0.25 in allied states; ×0.6 for a puppet state's titular group, because the puppet does much of the governing.
   - The **indiscriminate** share of that violence is `brutLocal × (1 − 0.6·competence)`. Competent governors use selective terror, which suppresses resistance while generating fewer atrocities. That is the Heydrich effect: intelligence makes terror more effective, not milder.
   - `colLocal` rises with competent, low-zeal governors, diplomatic governors and titular status.
+  - **Puppet legitimacy:** the titular group's co-optation bonus and dissent discount scale with `1 − commitment` of the puppet ruler. A puppet that serves Berlin wholeheartedly (Pavelić, commitment .85, who also ceded Dalmatia to Italy) earns its own people little national credit; a less committed successor earns more.
+- **Terrain** is the region's, unless a group's own districts differ. Western Ukrainians use 0.65 for the Volhynian forests and Carpathian foothills, against 0.45 for Ukraine as a whole. Terrain enters desperation, growth, draft evasion, suppression and erosion of the arms ceiling.
 - **Victimization** comes from rival groups' active collaborators in the same region: divide and rule turns neighbors into enforcers. For example, Ustaše Croats against Serbs at strength .95.
 - **Hunger** = quotas × group severity × German food pressure − harvest surplus, plus the Hunger Plan for marked peoples (1941–43). Above 0.5 it causes famine deaths and an event.
 - **Round-ups** scale with labor demand and group severity (bm), and are lower in allied (×0.1) and puppet (×0.5) states and where collaboration protects people.
@@ -249,16 +264,17 @@ For each group in each region:
   - a pragmatic one concedes.
   - NC reduces control and resource yield.
 - **Infighting** between communist and nationalist camps is worst with an even split and two rival sponsors. A diplomatic leader damps it.
-- **Armed strength `R`** follows logistic growth up to an **arms ceiling**: without a supplier, fighters are limited to captured weapons. Growth rises with defiance above a threshold, terrain, learning, a leader's generalship, supply, and draft evasion (round-ups × dissent × terrain). Nonviolence and infighting reduce it.
+- **Armed strength `R`** follows logistic growth up to an **arms ceiling**: `cap × (0.42 + 0.58 × min(1, 2.5·supply + auxArms))`. Without a supplier, fighters are limited to captured weapons and to what defecting police and militia bring over: `auxArms = collabP × max(0, D − 0.5)` (Ukrainian auxiliary police joining the UPA in 1943, Slovak army units in 1944). Growth rises with defiance above a threshold, terrain, learning, a leader's generalship, supply, and draft evasion (round-ups × dissent × terrain). Nonviolence and infighting reduce it.
 - **Suppression** = garrison × suppW × terrain (eased by helicopters) × brutality × governor competence × governor and ruler generalship × German counterinsurgency learning × (1 − supply), and is weakened by a resistance general.
 - **Atrocity memory** accumulates from indiscriminate violence and decays slowly. Heavy indiscriminate pressure erodes the arms ceiling.
-- **Allied states** do not grow guerrillas the same way: their `R` tracks defiance, and they leave by **defection** instead.
+- **Allied states** do not grow guerrillas the same way: their `R` tracks defiance, and they leave by **defection** instead. When an ally defects its army turns on the garrisons, so its peoples' `R` jumps to at least `0.3 + 0.4·D` and stays there.
 - **Ethnic Germans** never resist. They supply auxiliaries, and their numbers grow with settlement.
 
 ### 5.12 Regions
 A region's `R`, `A` and `NC` are population-weighted averages of its cells, excluding ethnic Germans. Population changes with famine and depopulation.
 - **Occupied, annexed and puppet regions** are **lost** after two years with `R ≥ 0.6`, and **retaken** if `R` falls below 0.35.
-- **Allies defect** when loyalty falls below 0.3 and there is an opening. Loyalty is made of belief in permanence, cohesion, the ruler's commitment, defiance, the church war, the succession shock and the German ruler's diplomacy. An opening means outside supply, low German cohesion, a strong nearby Soviet rump, or a diplomatic genius in charge of the ally.
+- **Contested:** a minority (a group with 15–50% of the region) whose own `R ≥ 0.6` for two years holds its own districts, as the Serbs did in the Krajina and the Bosnian mountains, even though the population-weighted region average stays low. A contested region counts at half value for control and the 1970 classification, yields 40% less, and counts as half a loss for cohesion. It is cleared when that group's `R` falls below 0.35, and becomes simply lost if the whole region falls.
+- **Allies defect** when loyalty falls below 0.3 and there is an opening. Loyalty = `0.15 + 0.5·X + 0.25·cohesion + 0.25·commitment − 0.6·defiance − church war − succession shock + German ruler's diplomacy`. An opening means a strong nearby Soviet rump, German cohesion below 0.38, a diplomatic genius in charge of the ally, or an outside offer of supply **once the Reich looks beatable** (`X < 0.4` or cohesion below 0.55). Italy left in 1943 and Romania and Finland in 1944 when Germany was visibly losing, not when the Allies first made offers.
 
 ### 5.13 Allied and puppet rulers
 Mussolini, Horthy, Antonescu, Boris III, Ryti's government, Tiso, Pavelić and the Albanian cabinet each age and can die. A successor is usually less committed (×0.4–0.9). 3% are exceptional, with any commitment. A succession shocks loyalty for a year.
@@ -283,7 +299,7 @@ Rates:
 - 4% of Berlin cohort candidates;
 - 2% of governor appointments;
 - 3% of allied-ruler successors;
-- resistance leaders, who are only generated when exceptional: each group, each year, `0.001 + 0.006 × max defiance`, so crisis produces leaders.
+- resistance leaders, who are only generated when exceptional: each group, each year, `0.0003 + 0.0015 × max defiance`, so crisis produces leaders. That gives about 0.5 per run.
 
 What each skill does:
 
@@ -299,8 +315,8 @@ What each skill does:
 Resistance leaders die each year at about 4%, plus a risk from suppression, or are killed in massacres after nonviolent campaigns.
 
 ### 5.16 Cohesion, home front, expectations, end states
-- **Cohesion** moves toward `0.78 + home front + fervor + ruler oratory`. The home front is Aly's thesis: the regime bought German loyalty with plunder and welfare, so food and strength above need raise it. Cohesion falls with new losses, the number of regions lost and thaw.
-- **`X`** is the shared belief that German rule is permanent. It rises in quiet years toward a ceiling that information lowers, falls with each loss, and recovers a little with each region retaken.
+- **Cohesion** moves toward `0.78 + home front + fervor + ruler oratory`. The home front is Aly's thesis: the regime bought German loyalty with plunder and welfare, so food and strength above need raise it. Cohesion falls with new losses, weighted by value (`0.015` per loss plus `0.5 × value lost`), with a standing drain of `0.05 × value already lost` per year, and with thaw. Losing Montenegro (value .003) no longer costs what losing France (.18) does.
+- **`X`** is the shared belief that German rule is permanent. It rises in quiet years toward a ceiling that information lowers, falls with each loss by `0.02 + 0.5 × value`, and recovers with each region retaken.
 - **German counterinsurgency learning** rises with the number of active insurgencies.
 - **End states:**
   - `uswar`: war with a nuclear-armed US, ending in capitulation;
@@ -314,13 +330,13 @@ Resistance leaders die each year at about 4%, plus a risk from suppression, or a
 
 `RunResult`:
 - `cells: Float32Array`: `[year][cell][CF field]`. Fields: R, A, D, FEAR, VICT, S_US, S_UK, S_EX, S_SU, S_NE, HUNG, POP, NC, AWARE.
-- `regions: Float32Array`: `[year][region][RF field]`. Fields: LOST, R, A, GOV (index into `govs`), GAR.
+- `regions: Float32Array`: `[year][region][RF field]`. Fields: LOST, R, A, GOV (index into `govs`), GAR, CONT (contested).
 - `glob: Float32Array`: `[year][GF field]`. Fields: S, COH, X, CTRL (control %), K (−1 if no rump), ENDED, USB, DEB, BRUT, COL, EXTR, SS, PARTY, WEHR, TECH, GOR, FERV, INFO, OIL, FOOD, CHURCH, GPO, LEAD (index into `rulers`, −1 after the end).
-- `govs`, `rulers`, `resLeaders` (with tenure and fate), `events` (`{y, kind, text, region?}`), `lostByResistance`, `groupPeak`, `heydrichAlive`, `outcome`, `endYear`.
+- `govs`, `rulers`, `resLeaders` (with tenure and fate), `events` (`{y, kind, text, region?}`), `lostByResistance`, `contestedEver`, `groupPeak`, `heydrichAlive`, `outcome`, `endYear`.
 
 Event kinds: start, regime, loss, gain, nuke, psych, faction, ethnic, sponsor, governor, berlin, famine, church, genocide, labor, ally, end.
 
-`Aggregate`: outcome counts; control and strength bands (median, p10, p90); `cellMed` (the medians of every cell field, used by the UI's "watch average" mode); `regionR`; `heldShare`; `lostShare`; `groupMajor` (share of runs where the group's armed strength reaches 0.5 somewhere); and per-year shares for founder gone, church war, US bomb, German bomb, rump alive, ended and new generation in power; plus `globMed`.
+`Aggregate`: outcome counts; control and strength bands (median, p10, p90); `cellMed` (the medians of every cell field, used by the UI's "watch average" mode); `regionR`; `heldShare`; `lostShare`; `contestedShare`; `groupMajor` (share of runs where the group's armed strength reaches 0.5 somewhere); and per-year shares for founder gone, church war, US bomb, German bomb, rump alive, ended and new generation in power; plus `globMed`.
 
 Cells are built from group presence entries with share > 0.02: 56 cells. Index tables are in `cells.ts`.
 
@@ -398,78 +414,23 @@ A three-iteration smoke test of the calibration script cut the error from 6.74 t
 
 ---
 
-## 10. UI to build (React, not started)
+## 10. The UI
 
-Stack is already installed: React 18.3.1, zustand, d3-geo, d3-scale, d3-shape, topojson-client, world-atlas (countries-50m).
+Built with React 18.3.1, zustand, d3-geo, d3-scale, d3-shape, topojson-client and world-atlas (countries-50m), all inlined into one HTML file.
 
-1. **`src/worker.ts`:** runs `runBatch` and `aggregate` off the main thread. Import it as `import SimWorker from "./worker?worker&inline"` so the single-file build inlines it. Transfer the Float32Array buffers.
-2. **`src/store.ts` (zustand):** params, preset, runs, aggregate, selected run or "average," year, playing, speed, selected region.
-3. **Header and rail:**
-   - preset buttons and policy levers (including `labor`);
-   - Berlin levers;
-   - outside powers (US, UK, USSR, westPrag, neutral nerve);
-   - a collapsible per-group sponsor attitude editor, 32 groups × 3 sponsors.
-4. **Verdict:** a stacked bar of outcomes.
-5. **Watch section:**
-   - mode toggle: **average** (uses `cellMed`, `regionR`, `heldShare`) or **single run**;
-   - run picker: outcome filter, a select over all runs, a random button;
-   - play/pause, year slider, speed control.
-6. **Map:**
-   - projection: d3-geo conic conformal, Europe;
-   - data: world-atlas 50m, matched by `REGIONS[].countries` names. Kosovo has no numeric id in world-atlas, so match it by name;
-   - colors: by control/R; the Reich core (Germany, Austria, Liechtenstein) dark; neutrals gray; the Soviet rump by K; lost regions marked.
-7. **Year panel:**
-   - control, strength (with oil and food), cohesion, X, fervor;
-   - the ruler with talent bars;
-   - a faction share bar;
-   - bomb status and church war;
-   - events for that year.
-8. **Region detail on click:**
-   - the governor (name, faction, talent);
-   - garrison;
-   - each group's D, A, fear, R, hunger, awareness, population and non-cooperation bars;
-   - supply broken down by sponsor;
-   - rivalries;
-   - any resistance leader.
-9. **Charts:** a control chart with p10–p90 band, small multiples of group movement, and a chronicle synced to the year.
-10. **Explainer sections:**
-    - the identity-groups table;
-    - Berlin's people;
-    - supply and neutrals;
-    - psychology (Kuran, Granovetter, Kalyvas);
-    - leadership and exceptional people;
-    - resources;
-    - the genocide note (treated soberly);
-    - calibration and limits;
-    - sources.
-
-**Design tokens from v1** (fonts: Big Shoulders Display, Source Serif 4, IBM Plex Mono):
-
-| Token | Light | Dark |
-|---|---|---|
-| `--paper` | #e9ece7 | #111418 |
-| `--surface` | #f5f6f2 | #191e24 |
-| `--ink` | #1b2128 | #e2e6e9 |
-| `--muted` | #59636d | #98a3ad |
-| `--rule` | #c5cbc4 | #2b333b |
-| `--accent` | #2b5874 | #7eb0cf |
-| `--reich` | #66704f | #a9b08a |
-| `--resist` | #a8701a | #e2a64a |
-| `--danger` | #a23a2e | #e47566 |
-| `--war` | #6f5594 | #b59cdb |
-
-Theming rules:
-- Put the tokens on a bare `:root`.
-- Dark mode goes under `@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {…} }` and again under `:root[data-theme="dark"]`.
-- It must work at phone width with no horizontal scroll, and side padding `max(16px, env(safe-area-inset-*))`.
+- **Engine off the main thread.** `engine.ts` runs `runBatch` and `aggregate` and keeps the full runs; the page receives the aggregate and one summary per run, then fetches single runs on demand, with buffers transferred. It runs in an inline worker (`worker?worker&inline`). If the host blocks workers (a page opened from disk does), the store runs the same engine on the main thread.
+- **Rail:** scenario presets, run count and seed; occupation policy (brutality, extraction, collaboration, forced labor); Berlin (pragmatist weight); outside powers (US, UK, USSR, rump survival, arming communists, neutral nerve, US bomb year); a collapsible 31 × 3 sponsor-attitude editor. Any change reruns the batch after a short debounce.
+- **Verdict:** a stacked bar of the five outcomes with descriptions.
+- **Watch:** average of all runs, or one history picked by outcome filter, a select of every run, or at random; play, pause, year slider and three speeds.
+- **Map:** conic conformal Europe; regions shade from olive (held) to amber (armed resistance) and toward red as lost (in average mode, by the share of runs lost); allies drawn fainter; the Reich core, neutrals and the Soviet rump (by strength) drawn separately; lost regions ringed and contested ones dotted. Regions are keyboard-focusable.
+- **Year panel:** control, strength, oil, food, cohesion, permanence, fervor, brutality, collaboration; faction shares; the ruler with talent bars; bombs, church war, Generalplan Ost and the rump; that year's events. In average mode, the share of runs with each milestone.
+- **Region detail:** status, regime, terrain, reach, resources, garrison; the governor or allied ruler with talent bars; any resistance leader; every group's dissent, defiance, fear, armed strength, strikes, hunger, victimization, awareness and population, plus supply by sponsor; rivalries.
+- **Charts:** control over time with the p10–p90 band and the selected run; small multiples of each group's peak armed strength; a chronicle synced to the year (in average mode, milestones across runs).
+- **Explainer:** the peoples, Berlin's people and governors, supply and neutrals, the psychology, leadership and exceptional people, resources, the genocide note, calibration and limits (with this batch's results against every group target), and sources.
 
 ## 11. Publishing as a claude.ai artifact
 
-`bun run build` makes a single `dist/index.html` (vite-plugin-singlefile). The artifact platform wraps pages itself, so add a bun post-build script that:
-- strips the `<!doctype>`, `<html>`, `<head>` and `<body>` tags;
-- keeps `<title>`, the metas (including `<meta name="claude:viewport-fit-sides" content="cover">`), the Google Fonts links, `<style>`, `<script>` and `<div id="root">`.
-
-Fonts may load only from Google Fonts. Publish to the v1 URL (read it first) or as a new artifact.
+`bun run build` typechecks, makes a single `dist/index.html` (vite-plugin-singlefile, about 1.1 MB), then runs `scripts/strip.ts`, which writes `dist/artifact.html` with only the title, the `claude:viewport-fit-sides` meta, the Google Fonts links, the style, the root element and the script. The artifact platform supplies the doctype, html, head, body, charset and viewport. Publish `dist/artifact.html`.
 
 ---
 
