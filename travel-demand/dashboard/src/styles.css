@@ -2,7 +2,7 @@
 :root { --frame: #dcd7bb; --block: #fa9f3d; --text: #0724a6; --text-2: #691b78; --rule: #435658; --flag: #484a5a;
   --grid: #c7864b; --border: #a77b4b; --muted: #b58149; --ok: #28591c; --warn: #a85a00; --bad: #a81917;
   --font: "Rubik", system-ui, sans-serif; --gap: 20px;
-  --gridline: var(--rule); }
+  }
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--frame); color: var(--text); font: 15px/1.45 var(--font); }
 button, input, select { font: inherit; color: inherit; }
@@ -25,12 +25,9 @@ button, input, select { font: inherit; color: inherit; }
   text-transform: uppercase; cursor: pointer; border-bottom: 4px solid transparent; }
 .tab[aria-selected="true"] { color: var(--text); border-bottom-color: var(--text); }
 
-/* Flat colour blocks with faint vertical grid lines */
-.hero, .card, .kpi { background-color: var(--block);
-  background-image: linear-gradient(to right, var(--gridline) 1px, transparent 1px);
-  background-size: 25% 100%; }
-.hero { display: grid; grid-template-columns: auto 1fr; gap: 28px 40px; align-items: start; padding: 72px 64px 80px;
-  border-bottom: 1px solid var(--gridline); }
+/* Flat colour blocks */
+.hero, .card, .kpi { background: var(--block); }
+.hero { display: grid; grid-template-columns: auto 1fr; gap: 28px 40px; align-items: start; padding: 72px 64px 80px; }
 .hero-num { font-weight: 900; font-size: clamp(72px, 10vw, 140px); line-height: 0.82; color: var(--text-2); }
 .hero-head h1 { margin: 6px 0 10px; font-size: clamp(22px, 2.4vw, 32px); font-weight: 700; color: var(--text); }
 .hero-head p { margin: 0; font-size: 19px; color: var(--text-2); max-width: 70ch; }

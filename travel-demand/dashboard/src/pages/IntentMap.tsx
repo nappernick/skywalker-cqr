@@ -11,7 +11,7 @@ import type { PageProps } from "./types";
 
 const HEIGHTS: readonly SegOption<HeightBasis>[] = [{ value: "all", label: "Share of all needs" }, { value: "answerable", label: "Share of answerable" }, { value: "gap", label: "Share of uncovered doc demand" }];
 const COLORS: readonly SegOption<ColorBasis>[] = [{ value: "group", label: "Category" }, { value: "coverage", label: "FAQ coverage" }, { value: "channel", label: "Channel" }, { value: "trend", label: "Trend" }];
-const SCALES: readonly SegOption<HeightScale>[] = [{ value: "linear", label: "Linear" }, { value: "sqrt", label: "√x" }, { value: "root3", label: "∛x" }, { value: "root4", label: "∜x" }, { value: "root5", label: "⁵√x" }];
+const SCALES: readonly SegOption<HeightScale>[] = [{ value: "linear", label: "Linear" }, { value: "sqrt", label: "√x" }, { value: "root3", label: "³√x" }, { value: "root4", label: "⁴√x" }, { value: "root5", label: "⁵√x" }];
 const PARTS: readonly SegOption<PartBasis>[] = [{ value: "topic", label: "River topic" }, { value: "channel", label: "Channel" }, { value: "region", label: "Region" }, { value: "month", label: "Month" }];
 const MAP_COLORS: readonly SegOption<MapColor>[] = [{ value: "cluster", label: "Co-occurrence groups" }, { value: "domain", label: "Domain" }, { value: "channel", label: "Channel" }, { value: "coverage", label: "FAQ coverage" }];
 const BASES: readonly SegOption<LinkBasis>[] = [{ value: "time", label: "Time: rise and fall together" }, { value: "person", label: "Same person, next ticket" }, { value: "ticket", label: "Same ticket" }];
@@ -122,7 +122,7 @@ export function IntentMap({ model: m, filters }: PageProps) {
           <Segmented label="Size by" options={HEIGHTS} value={st.height} onChange={(height) => patch({ height })} />
           <Segmented label="Colour" options={COLORS} value={st.color} onChange={(c) => patch({ color: c })} />
           <Segmented label="Scale" options={SCALES} value={st.scale} onChange={(scale) => patch({ scale })} />
-          <Segmented label="Intent parts" options={PARTS} value={st.part} onChange={(part) => patch({ part })} />
+          {st.level === 2 && <Segmented label="Intent parts" options={PARTS} value={st.part} onChange={(part) => patch({ part })} />}
         </div>
         <div className="toolbar">
           <nav className="crumbs" aria-label="Zoom level">
