@@ -16,23 +16,19 @@ interface PaletteRoles {
   readonly text2: string;
   readonly rule: string;
   readonly flag: string;
-  /** Chart inks: the theme's text colours first, then Khroma picks ranked by contrast against the block. */
-  readonly series: Series;
 }
 
 const PALETTES: Readonly<Record<PaletteId, PaletteRoles>> = {
-  "33": { frame: "#dcd7bb", block: "#fa9f3d", text: "#0724a6", text2: "#691b78", rule: "#435658", flag: "#484a5a",
-    series: ["#0724a6", "#691b78", "#435658", "#a81917", "#28591c", "#521291", "#9738f0", "#4b785a", "#d01e21", "#57737e", "#ed2ba0", "#dc17e7"] },
-  "43": { frame: "#9dee77", block: "#fa9f3d", text: "#691b78", text2: "#0724a6", rule: "#ed2ba0", flag: "#28591c",
-    series: ["#691b78", "#0724a6", "#28591c", "#a81917", "#484a5a", "#521291", "#275b57", "#9738f0", "#57737e", "#d01e21", "#4b785a", "#ed2ba0"] },
-  "44": { frame: "#91d1db", block: "#b6a1e3", text: "#0724a6", text2: "#691b78", rule: "#28591c", flag: "#435658",
-    series: ["#0724a6", "#691b78", "#28591c", "#435658", "#a81917", "#521291", "#9738f0", "#4b785a", "#d01e21", "#57737e", "#275b57", "#ed2ba0"] },
-  "60": { frame: "#cac0d4", block: "#dae41f", text: "#484a5a", text2: "#691b78", rule: "#521291", flag: "#0724a6",
-    series: ["#484a5a", "#691b78", "#0724a6", "#d01e21", "#9738f0", "#4b785a", "#28591c", "#a81917", "#521291", "#57737e", "#275b57", "#ed2ba0"] },
+  "33": { frame: "#dcd7bb", block: "#fa9f3d", text: "#0724a6", text2: "#691b78", rule: "#435658", flag: "#484a5a" },
+  "43": { frame: "#9dee77", block: "#fa9f3d", text: "#691b78", text2: "#0724a6", rule: "#ed2ba0", flag: "#28591c" },
+  "44": { frame: "#91d1db", block: "#b6a1e3", text: "#0724a6", text2: "#691b78", rule: "#28591c", flag: "#435658" },
+  "60": { frame: "#cac0d4", block: "#dae41f", text: "#484a5a", text2: "#691b78", rule: "#521291", flag: "#0724a6" },
 };
 
 export interface Theme extends PaletteRoles {
   readonly id: PaletteId;
+  /** Chart colours, all derived from the six roles: the four inks, then their tints toward the block. */
+  readonly series: Series;
   /** Aliases the charts use, all derived from the six roles. */
   readonly bg: string;
   readonly panel: string;
@@ -52,9 +48,15 @@ export interface Theme extends PaletteRoles {
 function themeOf(id: PaletteId): Theme {
   const p = PALETTES[id];
   const mix = interpolateRgb(p.block, p.rule);
+  const tint = (c: string, k: number) => interpolateRgb(c, p.block)(k);
+  const series: Series = [
+    p.text, p.text2, p.rule, p.flag,
+    tint(p.text, 0.45), tint(p.text2, 0.45), tint(p.rule, 0.45), tint(p.flag, 0.45),
+    interpolateRgb(p.text, p.text2)(0.5), tint(p.text, 0.7), tint(p.text2, 0.7), tint(p.rule, 0.7),
+  ];
   return {
-    ...p, id, bg: p.frame, panel: p.block, fg: p.text, fgMuted: p.text2, border: mix(0.45), grid: mix(0.2), axis: mix(0.6),
-    reference: p.flag, muted: mix(0.4), popover: p.frame, ok: "#28591c", warn: "#a85a00", bad: "#a81917",
+    ...p, id, series, bg: p.frame, panel: p.block, fg: p.text, fgMuted: p.text2, border: mix(0.45), grid: mix(0.2), axis: mix(0.6),
+    reference: p.flag, muted: mix(0.4), popover: p.frame, ok: p.text, warn: p.text2, bad: p.rule,
   };
 }
 
