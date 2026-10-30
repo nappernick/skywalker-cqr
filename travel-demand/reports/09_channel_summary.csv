@@ -1,0 +1,7 @@
+channel,intent_rows,tickets_by_hardest_channel,share_of_tickets,cum_share_of_tickets
+answer,1964,1614,0.201,0.201
+agent_action,4924,4571,0.571,0.772
+intake_and_route,255,221,0.028,0.800
+agent_prep_human_decision,503,438,0.055,0.854
+human_investigation,430,429,0.054,0.908
+engineering_fix,844,739,0.092,1.000

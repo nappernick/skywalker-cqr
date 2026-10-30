@@ -31,7 +31,7 @@ car_damage_accident,United Kingdom,21
 car_damage_accident,Germany,20
 car_fines_violations,Luxembourg,10
 car_fines_violations,Germany,9
-car_insurance,United States,71
+car_insurance,United States,72
 car_insurance,Germany,6
 car_insurance,United Kingdom,5
 car_rental_charges,Germany,30
@@ -224,6 +224,8 @@ seat_fees,United Kingdom,9
 seat_fees,India,6
 sncf_card,France,113
 sncf_card,Germany,30
+team_membership_request,United States,11
+team_membership_request,Brazil,7
 tmc_service_complaint,United States,16
 tmc_service_complaint,United Kingdom,5
 trail_code,United States,19

@@ -1,0 +1,29 @@
+agent_capability,tickets
+"Profile provisioning status + re-sync (OBT admin, HR feed)",1029
+BahnCard business-case calculation + order,636
+File incident with rental vendor / claims administrator,597
+Form-of-payment configuration on profile (OBT admin),318
+PEA list lookup and rule-based add,308
+"Profile reactivation / creation (OBT admin, HR feed)",226
+Submit V-Pay request / issue virtual card,225
+Eligibility check + V-Pay form permission grant,223
+Submit housing request to housing vendor,190
+Profile field update (OBT admin),148
+SNCF card order / renewal,148
+Profile legal-name update with ID verification (OBT admin),138
+Book / change rental via OBT or TMC,107
+Book / change flight via OBT or TMC,82
+Book / change rail via OBT or TMC,68
+Offline hotel booking via TMC,62
+Loyalty number on profile / status-match submission,57
+Lowest-logical-fare quote from GDS/TMC,50
+Retrieve invoice / receipt from TMC or OBT,47
+Authorized read of central-bill CVV,34
+Change / cancel booking via OBT or TMC,34
+Arranger/delegate grant with traveller consent (OBT admin),28
+Fine processing / driver nomination,24
+Travel history report from TMC data,17
+Permission-group membership grant,16
+Group booking intake to TMC groups desk,15
+Cost-center reallocation on booking / transaction,12
+Trail code / travel approval request,4

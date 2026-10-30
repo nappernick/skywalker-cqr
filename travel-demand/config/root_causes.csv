@@ -44,7 +44,7 @@ hotel,Hotel booking / billing,fulfilment,hotel_booking_billing
 Travel Booking - Hotel No Show/Booking not Cancelled,Hotel no-show,fulfilment,hotel_no_show_cancel
 Hotel No Show,Hotel no-show,fulfilment,hotel_no_show_cancel
 Travel Process - Hotel Upgrades,Policy exception,approval,hotel_policy
-Hotel review for CAT managers,Internal,internal,internal_admin
+Hotel review for CAT managers,Internal,internal,internal_tracking
 Travel Booking - Air Booking or Billing Inquiry,Air booking / billing,fulfilment,air_booking_help
 Airline,Air booking / billing,fulfilment,air_booking_help
 Exchange or unused tickets,Unused tickets,knowledge,flight_credits
@@ -73,6 +73,6 @@ OTIS,Reporting,fulfilment,travel_history_report
 Travel Process - Active Booking Referral,Active booking,fulfilment,booking_change_help
 Travel Booking - Active Booking Referral,Active booking,fulfilment,booking_change_help
 Others - Ticket No Detail/Empty/Duplicate or Test,No detail / duplicate / test,junk,unclear
-Deployment - Testing/QA,No detail / duplicate / test,junk,internal_admin
+Deployment - Testing/QA,No detail / duplicate / test,junk,test_ticket
 Others - Other Inquiries,Other,other,unclear
 Resolved by automation rule.,Automation,other,unclear

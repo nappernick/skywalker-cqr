@@ -1,0 +1,8 @@
+origin,agent_action,agent_prep_human_decision,answer,engineering_fix,human_investigation,intake_and_route,All
+BCD Template,51,0,13,1,1,0,66
+Direct,171,20,117,0,28,15,351
+Email,23,2,5,0,7,1,38
+River,3841,314,1069,620,317,159,6320
+SIM-T,479,100,408,118,74,46,1225
+Slack,6,2,2,0,2,0,12
+All,4571,438,1614,739,429,221,8012

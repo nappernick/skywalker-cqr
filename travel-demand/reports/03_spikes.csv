@@ -1,12 +1,12 @@
 intent_id,month,tickets,share_that_month,mean_share_other_months
 air_booking_help,2026-02,63,0.065,0.021
 cancelled_flight_expense,2026-03,17,0.018,0.009
-car_rental_policy,2026-07,22,0.028,0.014
+car_rental_policy,2026-07,22,0.027,0.014
 corporate_housing,2026-06,37,0.052,0.022
 cost_center,2026-05,10,0.016,0.007
 flight_credits,2026-01,20,0.015,0.008
 hotel_booking_billing,2026-07,25,0.031,0.012
-obt_access,2026-01,493,0.371,0.122
+obt_access,2026-01,493,0.37,0.121
 obt_airline_not_bookable,2026-03,26,0.027,0.004
 obt_arranger_delegate,2026-06,16,0.023,0.006
 obt_booking_error,2026-08,51,0.062,0.038

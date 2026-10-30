@@ -1,66 +1,68 @@
-intent_id,domain,name,faq_question,answer_class
-obt_access,Booking tool access & profile,Booking tool login and access,I can't log in to or book in the booking tool (Spotnana / TripSource / Concur) — how do I get access?,account
-obt_profile_lifecycle,Booking tool access & profile,Profile activation for new hires / rehires / RIF / transfers,"I'm a new hire, rehire, RIF-impacted or transferred employee — when does my travel profile become active and how do I reactivate it?",doc_then_human
-obt_profile_name,Booking tool access & profile,Legal name on travel profile,My name in the booking tool doesn't match my passport — how do I correct my legal name?,doc_then_human
-obt_profile_data,Booking tool access & profile,Profile data after migration,"My profile data (passport, manager, accommodations, preferences) is missing or wrong after the move to the new tool — how do I fix it?",doc_then_human
-obt_arranger_delegate,Booking tool access & profile,Arranger / delegate access,How do I book travel for someone else or get arranger / delegate access?,doc_then_human
-obt_how_to,Booking tool usage,How to use the booking tool,"How do I do X in the booking tool (search, modify, multi-city, find my trips, notifications)?",doc
-obt_legacy_bookings,Booking tool usage,Trips booked in the old tool,How do I change or cancel a trip I booked in TripSource / BCD before the switch to the new tool?,doc
-obt_booking_error,Booking tool usage,Booking error in the tool,"My booking fails with an error (e.g. ""third-party booking error"", ""fare no longer available"") — what do I do?",account
-obt_airline_not_bookable,Booking tool usage,Airline not available in the tool,"Why can't I find or book a specific airline (Southwest, Ryanair, low-cost carriers) in the tool, and how do I book it?",doc
-obt_hotel_booking,Booking tool usage,Hotel not available in the tool,The tool shows no availability or doesn't list the hotel I need — how do I book it?,doc_then_human
-obt_pricing_error,Booking tool usage,Pricing mistakes / tool price vs direct,"The tool's price looks wrong or is higher than booking direct — how do I report it, and can I book direct?",report
-obt_feedback,Booking tool usage,Tool feedback and enhancement requests,How do I submit feedback or an enhancement request for the booking tool?,report
-obt_payment_method,Payments & cards,Payment method in the booking tool,"My corporate / central-bill card isn't showing or is declined in the booking tool — which payment method should I use, and how do I fix it?",account
-obt_central_bill_cvv,Payments & cards,Central-bill card CVV,Where do I find the CVV for the Amazon central-bill (air) card?,doc
-corp_card,Payments & cards,Corporate travel card,"Must I use the corporate card, and what do I do if it's declined, expired, lost or not yet issued?",doc_then_human
-vpay_access,Payments & cards,V-Pay form access,How do I get access to the V-Pay (virtual payment) request form?,doc_then_human
-vpay_request,Payments & cards,Using V-Pay for travel,How do I use V-Pay to pay hotel / car / air for travellers without a corporate card?,doc_then_form
-vpay_failure,Payments & cards,V-Pay failures,"My V-Pay card was declined or the V-Pay form errors out — what do I do?",account
-pea_eligibility,Air policy,Premium economy eligibility (PEA list),"Am I eligible for premium economy (PEA list), and why isn't it showing on my profile?",doc_then_human
-cabin_exception,Air policy,Cabin exception request,How do I request an exception to fly premium economy / business outside my normal eligibility?,doc_then_human
-medical_accommodation,Air policy,Medical / disability travel accommodation,"How do I request a medical or disability travel accommodation (DLS), and how is it applied to bookings?",doc_then_human
-paid_upgrade_personal,Air policy,Paying for a personal upgrade,How do I pay for an upgrade myself and expense only the business portion?,doc
-oop_cabin_upgrade,Air policy,Cabin upgrade flagged on expense report,My expense report was returned for a cabin upgrade — how do I get it approved?,doc_then_human
-seat_fees,Air policy,Seat selection fees,Are seat selection / preferred seating fees reimbursable?,doc
-flight_credits,Air policy,Unused flight credits,How do I use or expense unused flight credits and e-credits?,doc
-cancelled_flight_expense,Air policy,Expensing cancelled / changed flights,How do I expense a cancelled or changed flight?,doc
-fare_quote,Air policy,Economy fare quote for reimbursement,I booked outside the program — how do I get a lowest-logical economy fare quote for my expense report?,doc_then_human
-tripbam_rebooking,Air policy,TRIPBAM rebooking,Why was my booking rebooked by TRIPBAM to a more restrictive fare?,doc
-flight_disruption,Air policy,Delays / baggage / passenger-rights compensation,"How do I claim compensation for a delay, cancellation or baggage problem?",doc
-air_booking_help,Air policy,Air booking or change assistance,I need help booking or changing a flight.,account
-corporate_housing,Hotel,Corporate / long-term housing,How do I request corporate or long-term housing?,doc_then_human
-hotel_no_show_cancel,Hotel,Hotel no-show / cancellation charges,I was charged for a hotel no-show or a booking I cancelled — what do I do?,account
-hotel_policy,Hotel,Hotel policy and rates,"What hotel rates / properties / alternatives (e.g. Airbnb) are allowed?",doc
-hotel_booking_billing,Hotel,Hotel booking or billing assistance,I need help with a hotel booking or bill.,account
-car_damage_accident,Car,Rental car accident / damage,I had an accident or damage in a rental car — what do I do?,doc_then_human
-car_fines_violations,Car,Traffic fines / parking violations,I received a speeding or parking fine for a rental car — how is it handled?,doc_then_human
-car_insurance,Car,Rental car insurance,Which rental insurance (LDW / CDW / PAI) should I take and is it reimbursable?,doc
-car_rental_policy,Car,Rental car policy and vendors,"Which car vendors and classes are allowed, and are upgrades reimbursable?",doc
-car_rental_charges,Car,Disputing rental charges,"How do I dispute rental charges (late fees, extra charges, duplicate debits)?",account
-car_booking_help,Car,Car booking assistance,I need help booking a rental car.,account
-bahncard,Rail,BahnCard request,How do I request a BahnCard and which type / class am I eligible for?,doc_then_human
-sncf_card,Rail,SNCF discount card,How do I request or renew an SNCF discount card (Carte Liberté)?,doc_then_human
-rail_class_policy,Rail,Rail class policy,When can I book first / business class rail?,doc
-rail_booking_help,Rail,Rail booking assistance,I need help booking a train or with a rail booking in the tool.,account
-oop_exception_approval,Expenses & policy,Out-of-policy expense approval,How do I get approval for an out-of-policy travel expense?,doc_then_human
-expense_report_returned,Expenses & policy,Returned / rejected travel expense report,My travel expense report was returned or rejected — what do I need to do?,doc_then_human
-expense_how_to,Expenses & policy,How to expense a travel cost,"How do I expense a travel cost I paid myself or booked outside the tool?",doc
-receipt_policy,Expenses & policy,Receipt requirements,What receipts are required to expense travel?,doc
-booking_invoice,Expenses & policy,Getting a booking invoice / receipt,Where do I get the invoice or receipt for my booking?,doc
-cost_center,Expenses & policy,Charging travel to another cost center,How do I charge or move a trip to a different cost center?,doc
-business_personal_combined,Expenses & policy,Combining business and personal travel,"How do I book and expense a trip that combines business and personal travel (extension, alternate city, companion)?",doc
-travel_policy_general,Expenses & policy,General travel policy question,What does the travel policy say about X?,doc
-non_employee_travel,Programs & special travel,Travel for guests / candidates / interns / contractors,"How do I book travel for a guest, candidate, intern, contractor or pre-start new hire?",doc
-trail_code,Programs & special travel,Trail code / travel approval,How do I get a Trail code / travel approval for a trip?,doc_then_human
-visa_immigration,Programs & special travel,Visa and immigration letters,"How do I get visa support, invitation letters or immigration guidance for business travel?",doc_then_human
-travel_insurance,Programs & special travel,Travel insurance and duty of care,"What travel insurance covers me (medical, lost belongings, ISOS)?",doc
-travel_history_report,Programs & special travel,Travel history / reports,"How do I get my travel history or a travel report (visa, tax, audit)?",doc_then_human
-travel_time,Programs & special travel,Recording travel time,How do I record or get paid for travel time?,doc
-group_travel,Programs & special travel,Group travel,How do I book travel for a group?,doc_then_human
-loyalty_programs,Programs & special travel,Loyalty programs and status promotions,How do I add loyalty numbers and get corporate status matches / promotions?,doc
-tmc_service_complaint,Programs & special travel,Travel agency (BCD) service complaint,How do I escalate a problem with the travel agency's service?,report
-booking_change_help,Programs & special travel,Change or cancel an existing booking,I need to change or cancel an existing trip.,account
-unclear,Excluded,Insufficient detail,(no identifiable need),excluded
-out_of_scope,Excluded,Not a travel-support question,(non-travel request),excluded
-internal_admin,Excluded,Internal / admin / test,"(team membership, queue-jump tracking, test tickets, hotel reviews, process notices)",excluded
+intent_id,domain,name,faq_question,answer_class,best_channel,agent_capability
+obt_access,Booking tool access & profile,Booking tool login and access,I can't log in to or book in the booking tool (Spotnana / TripSource / Concur) — how do I get access?,account,agent_action,"Profile provisioning status + re-sync (OBT admin, HR feed)"
+obt_profile_lifecycle,Booking tool access & profile,Profile activation for new hires / rehires / RIF / transfers,"I'm a new hire, rehire, RIF-impacted or transferred employee — when does my travel profile become active and how do I reactivate it?",doc_then_human,agent_action,"Profile reactivation / creation (OBT admin, HR feed)"
+obt_profile_name,Booking tool access & profile,Legal name on travel profile,My name in the booking tool doesn't match my passport — how do I correct my legal name?,doc_then_human,agent_action,Profile legal-name update with ID verification (OBT admin)
+obt_profile_data,Booking tool access & profile,Profile data after migration,"My profile data (passport, manager, accommodations, preferences) is missing or wrong after the move to the new tool — how do I fix it?",doc_then_human,agent_action,Profile field update (OBT admin)
+obt_arranger_delegate,Booking tool access & profile,Arranger / delegate access,How do I book travel for someone else or get arranger / delegate access?,doc_then_human,agent_action,Arranger/delegate grant with traveller consent (OBT admin)
+obt_how_to,Booking tool usage,How to use the booking tool,"How do I do X in the booking tool (search, modify, multi-city, find my trips, notifications)?",doc,answer,
+obt_legacy_bookings,Booking tool usage,Trips booked in the old tool,How do I change or cancel a trip I booked in TripSource / BCD before the switch to the new tool?,doc,answer,
+obt_booking_error,Booking tool usage,Booking error in the tool,"My booking fails with an error (e.g. ""third-party booking error"", ""fare no longer available"") — what do I do?",account,human_investigation,PNR / booking investigation with TMC
+obt_airline_not_bookable,Booking tool usage,Airline not available in the tool,"Why can't I find or book a specific airline (Southwest, Ryanair, low-cost carriers) in the tool, and how do I book it?",doc,answer,
+obt_hotel_booking,Booking tool usage,Hotel not available in the tool,The tool shows no availability or doesn't list the hotel I need — how do I book it?,doc_then_human,agent_action,Offline hotel booking via TMC
+obt_pricing_error,Booking tool usage,Pricing mistakes / tool price vs direct,"The tool's price looks wrong or is higher than booking direct — how do I report it, and can I book direct?",report,intake_and_route,Structured defect / pricing report to OBT vendor
+obt_feedback,Booking tool usage,Tool feedback and enhancement requests,How do I submit feedback or an enhancement request for the booking tool?,report,intake_and_route,Feedback capture to product backlog
+obt_payment_method,Payments & cards,Payment method in the booking tool,"My corporate / central-bill card isn't showing or is declined in the booking tool — which payment method should I use, and how do I fix it?",account,agent_action,Form-of-payment configuration on profile (OBT admin)
+obt_central_bill_cvv,Payments & cards,Central-bill card CVV,Where do I find the CVV for the Amazon central-bill (air) card?,doc,answer,Authorized read of central-bill CVV
+corp_card,Payments & cards,Corporate travel card,"Must I use the corporate card, and what do I do if it's declined, expired, lost or not yet issued?",doc_then_human,answer,
+vpay_access,Payments & cards,V-Pay form access,How do I get access to the V-Pay (virtual payment) request form?,doc_then_human,agent_action,Eligibility check + V-Pay form permission grant
+vpay_request,Payments & cards,Using V-Pay for travel,How do I use V-Pay to pay hotel / car / air for travellers without a corporate card?,doc_then_form,agent_action,Submit V-Pay request / issue virtual card
+vpay_failure,Payments & cards,V-Pay failures,My V-Pay card was declined or the V-Pay form errors out — what do I do?,account,human_investigation,Virtual-card transaction investigation
+pea_eligibility,Air policy,Premium economy eligibility (PEA list),"Am I eligible for premium economy (PEA list), and why isn't it showing on my profile?",doc_then_human,agent_action,PEA list lookup and rule-based add
+cabin_exception,Air policy,Cabin exception request,How do I request an exception to fly premium economy / business outside my normal eligibility?,doc_then_human,agent_prep_human_decision,Exception request packet to approver
+medical_accommodation,Air policy,Medical / disability travel accommodation,"How do I request a medical or disability travel accommodation (DLS), and how is it applied to bookings?",doc_then_human,agent_prep_human_decision,Accommodation request to DLS / approver
+paid_upgrade_personal,Air policy,Paying for a personal upgrade,How do I pay for an upgrade myself and expense only the business portion?,doc,answer,
+oop_cabin_upgrade,Air policy,Cabin upgrade flagged on expense report,My expense report was returned for a cabin upgrade — how do I get it approved?,doc_then_human,agent_prep_human_decision,Expense exception packet to approver
+seat_fees,Air policy,Seat selection fees,Are seat selection / preferred seating fees reimbursable?,doc,answer,
+flight_credits,Air policy,Unused flight credits,How do I use or expense unused flight credits and e-credits?,doc,answer,
+cancelled_flight_expense,Air policy,Expensing cancelled / changed flights,How do I expense a cancelled or changed flight?,doc,answer,
+fare_quote,Air policy,Economy fare quote for reimbursement,I booked outside the program — how do I get a lowest-logical economy fare quote for my expense report?,doc_then_human,agent_action,Lowest-logical-fare quote from GDS/TMC
+tripbam_rebooking,Air policy,TRIPBAM rebooking,Why was my booking rebooked by TRIPBAM to a more restrictive fare?,doc,answer,
+flight_disruption,Air policy,Delays / baggage / passenger-rights compensation,"How do I claim compensation for a delay, cancellation or baggage problem?",doc,answer,
+air_booking_help,Air policy,Air booking or change assistance,I need help booking or changing a flight.,account,agent_action,Book / change flight via OBT or TMC
+corporate_housing,Hotel,Corporate / long-term housing,How do I request corporate or long-term housing?,doc_then_human,agent_action,Submit housing request to housing vendor
+hotel_no_show_cancel,Hotel,Hotel no-show / cancellation charges,I was charged for a hotel no-show or a booking I cancelled — what do I do?,account,human_investigation,Vendor charge dispute
+hotel_policy,Hotel,Hotel policy and rates,What hotel rates / properties / alternatives (e.g. Airbnb) are allowed?,doc,answer,
+hotel_booking_billing,Hotel,Hotel booking or billing assistance,I need help with a hotel booking or bill.,account,human_investigation,Hotel booking / folio investigation
+car_damage_accident,Car,Rental car accident / damage,I had an accident or damage in a rental car — what do I do?,doc_then_human,agent_action,File incident with rental vendor / claims administrator
+car_fines_violations,Car,Traffic fines / parking violations,I received a speeding or parking fine for a rental car — how is it handled?,doc_then_human,agent_action,Fine processing / driver nomination
+car_insurance,Car,Rental car insurance,Which rental insurance (LDW / CDW / PAI) should I take and is it reimbursable?,doc,answer,
+car_rental_policy,Car,Rental car policy and vendors,"Which car vendors and classes are allowed, and are upgrades reimbursable?",doc,answer,
+car_rental_charges,Car,Disputing rental charges,"How do I dispute rental charges (late fees, extra charges, duplicate debits)?",account,human_investigation,Vendor charge dispute
+car_booking_help,Car,Car booking assistance,I need help booking a rental car.,account,agent_action,Book / change rental via OBT or TMC
+bahncard,Rail,BahnCard request,How do I request a BahnCard and which type / class am I eligible for?,doc_then_human,agent_action,BahnCard business-case calculation + order
+sncf_card,Rail,SNCF discount card,How do I request or renew an SNCF discount card (Carte Liberté)?,doc_then_human,agent_action,SNCF card order / renewal
+rail_class_policy,Rail,Rail class policy,When can I book first / business class rail?,doc,answer,
+rail_booking_help,Rail,Rail booking assistance,I need help booking a train or with a rail booking in the tool.,account,agent_action,Book / change rail via OBT or TMC
+oop_exception_approval,Expenses & policy,Out-of-policy expense approval,How do I get approval for an out-of-policy travel expense?,doc_then_human,agent_prep_human_decision,Exception packet to approver / FinOps
+expense_report_returned,Expenses & policy,Returned / rejected travel expense report,My travel expense report was returned or rejected — what do I need to do?,doc_then_human,agent_prep_human_decision,Read expense report + audit reason; resubmission or appeal packet
+expense_how_to,Expenses & policy,How to expense a travel cost,How do I expense a travel cost I paid myself or booked outside the tool?,doc,answer,
+receipt_policy,Expenses & policy,Receipt requirements,What receipts are required to expense travel?,doc,answer,
+booking_invoice,Expenses & policy,Getting a booking invoice / receipt,Where do I get the invoice or receipt for my booking?,doc,agent_action,Retrieve invoice / receipt from TMC or OBT
+cost_center,Expenses & policy,Charging travel to another cost center,How do I charge or move a trip to a different cost center?,doc,agent_action,Cost-center reallocation on booking / transaction
+business_personal_combined,Expenses & policy,Combining business and personal travel,"How do I book and expense a trip that combines business and personal travel (extension, alternate city, companion)?",doc,answer,
+travel_policy_general,Expenses & policy,General travel policy question,What does the travel policy say about X?,doc,answer,
+non_employee_travel,Programs & special travel,Travel for guests / candidates / interns / contractors,"How do I book travel for a guest, candidate, intern, contractor or pre-start new hire?",doc,answer,
+trail_code,Programs & special travel,Trail code / travel approval,How do I get a Trail code / travel approval for a trip?,doc_then_human,agent_action,Trail code / travel approval request
+visa_immigration,Programs & special travel,Visa and immigration letters,"How do I get visa support, invitation letters or immigration guidance for business travel?",doc_then_human,agent_prep_human_decision,Letter / immigration request to mobility team
+travel_insurance,Programs & special travel,Travel insurance and duty of care,"What travel insurance covers me (medical, lost belongings, ISOS)?",doc,answer,
+travel_history_report,Programs & special travel,Travel history / reports,"How do I get my travel history or a travel report (visa, tax, audit)?",doc_then_human,agent_action,Travel history report from TMC data
+travel_time,Programs & special travel,Recording travel time,How do I record or get paid for travel time?,doc,answer,
+group_travel,Programs & special travel,Group travel,How do I book travel for a group?,doc_then_human,agent_action,Group booking intake to TMC groups desk
+loyalty_programs,Programs & special travel,Loyalty programs and status promotions,How do I add loyalty numbers and get corporate status matches / promotions?,doc,agent_action,Loyalty number on profile / status-match submission
+tmc_service_complaint,Programs & special travel,Travel agency (BCD) service complaint,How do I escalate a problem with the travel agency's service?,report,intake_and_route,Complaint capture to TMC account management
+booking_change_help,Programs & special travel,Change or cancel an existing booking,I need to change or cancel an existing trip.,account,agent_action,Change / cancel booking via OBT or TMC
+unclear,Excluded,Insufficient detail,(no identifiable need),excluded,none,
+out_of_scope,Excluded,Not a travel-support question,(non-travel request),excluded,none,
+team_membership_request,Booking tool access & profile,Team / permission-group membership,"Add me to the travel access group (e.g. River OBT access, Amazon-Travel-All).",action,agent_action,Permission-group membership grant
+internal_tracking,Excluded,Internal escalation / tracking / process notice,"(queue-jump trackers, internal hand-offs, hotel reviews, CTI notices)",excluded,none,
+test_ticket,Excluded,Test ticket,(test),excluded,none,

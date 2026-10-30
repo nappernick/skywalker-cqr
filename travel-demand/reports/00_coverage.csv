@@ -2,12 +2,12 @@ measure,value
 tickets in export (unique),8234
 monthly snapshot rows,8251
 tickets reported in >1 month,17
-excluded: internal/admin/test,99
-excluded: no detail/duplicate root cause,135
+excluded: internal tracking / test,71
+excluded: no detail/duplicate root cause,139
 excluded: unclear / out of scope,12
-demand tickets,7988
-demand tickets with River template title,5952
-demand ticket-intent rows,8896
+demand tickets,8012
+demand tickets with River template title,5953
+demand ticket-intent rows,8920
 demand tickets with >1 intent,799
 demand tickets filed by a support assignee,180
-distinct requesters (pseudonymous),6730
+distinct requesters (pseudonymous),6744

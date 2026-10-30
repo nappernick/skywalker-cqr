@@ -22,15 +22,34 @@ The export is **ticket metadata only**. It has the title, CTI item, resolver roo
 
 Each intent has an `answer_class`:
 
-| answer_class | meaning | Skywalker fit |
+| answer_class | meaning | documentation role |
 |---|---|---|
 | `doc` | Documentation fully answers it | full |
 | `doc_then_form` | Docs explain it; a self-service form completes it | partial |
 | `doc_then_human` | Docs explain eligibility and process; a person must approve, grant or fulfil | partial |
 | `account` | Needs someone to look at an account or booking (troubleshooting) | none |
 | `report` | A bug, feedback or complaint that needs routing | none |
+| `action` | A pure request with no question (e.g. add me to an access group) | none |
 
-**Ticket-level fit** takes the worst fit across the ticket's intents. It is upgraded to `full` when the resolver's root cause is a navigation or how-to gap (`resolution_type = knowledge`). In that case the person needed an explanation, whatever they asked for.
+Every intent also has a **`best_channel`**: what would best replace the human for it. It also has an **`agent_capability`**: the system access an agent would need. The answerable set (`channel = answer`) is the main focus. The other channels give a high-level picture of all demand.
+
+| best_channel | replaces the human with |
+|---|---|
+| `answer` | Skywalker answering from documentation |
+| `agent_action` | An agent with system access doing it end to end (grant, provision, book, order, file, retrieve) |
+| `intake_and_route` | An agent capturing a structured report or complaint and routing it |
+| `agent_prep_human_decision` | An agent assembling the case; a person approves or decides |
+| `human_investigation` | Nothing yet: vendor disputes, booking forensics |
+| `engineering_fix` | Fixing the tool |
+
+**Per ticket, the channel is refined by the resolver's root cause:**
+
+- A navigation / how-to root cause makes it `answer`. The person needed an explanation, whatever they asked for.
+- A tool defect makes it `engineering_fix`.
+- Feedback makes it `intake_and_route`.
+- An account fix on an `answer` intent makes it `agent_action`.
+
+`channel_basis` records whether the default or a root-cause override applied. **A ticket's channel is its hardest intent's channel.** `agent_action` means the work is deterministic enough to automate. It does not mean the API or permission exists today.
 
 ### Assignment (deterministic, config-as-data)
 
@@ -39,7 +58,7 @@ Each intent has an `answer_class`:
    - **Tier 2/3** (generic): used only if no specific rule or label matched. The first match wins, because several generic hits on a vague title means ambiguity, not several needs.
 2. `config/label_rules.tsv` adds intents from resolver labels that name a specific need, such as `PEALIst` or `Traffic Fines`. Labels that tag a workflow or a traveller segment are deliberately not used, such as `VPay Failure` (it sits on most V-Pay tickets) or `SN - EA/L8+/L10`.
 3. `config/root_causes.csv` gives the fallback intent when no text or label rule matched (3% of tickets). It also maps each root cause to a `resolution_type`.
-4. `internal_admin` is exclusive: team-membership requests, queue-jump trackers, tests and hotel reviews.
+4. `test_ticket`, `internal_tracking` (queue-jump trackers, hotel reviews, CTI notices) and `team_membership_request` are whole-ticket intents. When one matches, it is the only intent on the ticket. Only `team_membership_request` counts as employee demand.
 
 **Precision check.** I reviewed 100 random tickets (seed 2026) against their full assignment, before the last rule fixes. 93 were fully correct, 3 had a correct intent plus a spurious extra, and 4 were wrong. That is about 96% precision per assigned intent. All four errors had clear causes and were fixed. **Recall has not been measured**: a ticket can carry a need its title doesn't show, and only the description would reveal it.
 
@@ -49,7 +68,7 @@ Each intent has an `answer_class`:
 |---|---|---|
 | `ticket` | 1 row per ticket (latest monthly snapshot) | parsed title parts, root cause and `resolution_type`, support tier (`lvl0-3` tag), third-party escalation (`3p*` tags), River workflow, origin, timing, `requester_key` / `assignee_key` |
 | `ticket_snapshot` | 1 row per ticket per report month | 17 tickets appear in two months (re-resolved) |
-| `ticket_intent` | ticket × intent | `source` = `text` / `label` / `text_generic` / `root_cause` |
+| `ticket_intent` | ticket × intent | `source` = `text` / `label` / `text_generic` / `root_cause`; `channel`, `channel_basis` |
 | `ticket_tag`, `ticket_label` | ticket × tag / label | River workflow UUID kept on `ticket` |
 | `intent`, `root_cause` | dimensions | loaded from `config/` |
 | `demand_ticket`, `demand_ticket_intent` | views | excludes internal/test, no-detail/duplicate root causes, unclear and out-of-scope tickets |

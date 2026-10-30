@@ -1,8 +1,10 @@
 intent_id	tier	pattern	unless
+test_ticket	1	^(\[workflow feedback\] - )?(pea - )?test( ?test|1)*$|^testing workflow|inquiry - testing$|^nevermind$|shannon's request	
+team_membership_request	1	^membership request for team	
+internal_tracking	1	queue jump|^at&e internal ticket|important update|category update|classification update|hotel (guest )?review|feedback for cat managers	
 obt_access	1	access issues|booking tool access|tool access|no access to	
 obt_booking_error	1	third-party booking error|error in the self-booking tool	
 air_booking_help	1	flight related issue not on river|new booking tool - air$	
-internal_admin	1	^membership request|queue jump|^at&e internal ticket|important update|category update|classification update|^(\[workflow feedback\] - )?test( test)*$|^test\b|pea - test|testing|^nevermind$|shannon's request|hotel (guest )?review|^hotel review for cat|feedback for cat managers	
 obt_central_bill_cvv	1	cvv|ccv	
 bahncard	1	bahn ?card|\bbc ?(25|50|100)\b|bc application|deutschland-?ticket	
 sncf_card	1	sncf|carte libert|liberty card|scnf	

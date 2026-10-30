@@ -1,0 +1,8 @@
+measure,value
+demand tickets,8012
+tickets with >=1 answerable intent,1808
+tickets where every intent is answerable,1614
+answerable intent rows,1964
+answerable intent rows from intents whose default is answer,1133
+answerable intent rows from action intents resolved as knowledge,831
+"answer-first tickets: not fully answerable, but an intent's eligibility/process is documentable",3583

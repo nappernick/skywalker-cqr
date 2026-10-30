@@ -10,7 +10,8 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "reports"
 FULL_MONTHS = [f"2026-{m:02d}" for m in range(1, 10)]  # Nov/Dec 2025 creations are partial (carry-over)
-FIT = {"doc": "full", "doc_then_form": "partial", "doc_then_human": "partial", "account": "none", "report": "none"}
+# Replacement channels, least to most human involvement. The first three need no human once tooling exists.
+CHANNELS = ["answer", "agent_action", "intake_and_route", "agent_prep_human_decision", "human_investigation", "engineering_fix"]
 
 
 def pct(s, q):
@@ -29,14 +30,9 @@ def main(db):
     t["demand"] = t.ticket_id.isin(demand_ids)
     d = t[t.demand].copy()
     dti = ti[ti.ticket_id.isin(demand_ids)].merge(d, on="ticket_id")
-    dti["fit"] = dti.answer_class.map(FIT)
-
-    # Ticket-level Skywalker fit: full only if every intent is doc-answerable, or the resolver says it was a knowledge gap.
-    rank = {"full": 0, "partial": 1, "none": 2}
-    worst = dti.groupby("ticket_id").fit.agg(lambda s: max(s, key=rank.get))
-    d["fit"] = d.ticket_id.map(worst)
-    d.loc[d.resolution_type == "knowledge", "fit"] = "full"
-    fit_basis = dti.groupby("ticket_id").fit.agg(lambda s: max(s, key=rank.get)).rename("intent_fit")
+    # Ticket channel = the hardest channel among its intents (a ticket is only as automatable as its hardest need).
+    order = {c: k for k, c in enumerate(CHANNELS)}
+    tch = dti.groupby("ticket_id").channel.agg(lambda s: max(s, key=order.get))
 
     # Requester history (pseudonymous): prior ticket by same requester within 7 / 30 days.
     d["create"] = pd.to_datetime(d.create_ts, utc=True, format="ISO8601")
@@ -57,9 +53,9 @@ def main(db):
         ("tickets in export (unique)", len(t)),
         ("monthly snapshot rows", int(t.n_snapshots.sum())),
         ("tickets reported in >1 month", int((t.n_snapshots > 1).sum())),
-        ("excluded: internal/admin/test", int(t.ticket_id.isin(ti[ti.intent_id == "internal_admin"].ticket_id).sum())),
-        ("excluded: no detail/duplicate root cause", int(((t.resolution_type == "junk") & ~t.ticket_id.isin(ti[ti.intent_id == "internal_admin"].ticket_id)).sum())),
-        ("excluded: unclear / out of scope", int((~t.demand & ~t.ticket_id.isin(ti[ti.intent_id == "internal_admin"].ticket_id) & (t.resolution_type != "junk")).sum())),
+        ("excluded: internal tracking / test", int(t.ticket_id.isin(ti[ti.intent_id.isin(["internal_tracking", "test_ticket"])].ticket_id).sum())),
+        ("excluded: no detail/duplicate root cause", int(((t.resolution_type == "junk") & ~t.ticket_id.isin(ti[ti.intent_id.isin(["internal_tracking", "test_ticket"])].ticket_id)).sum())),
+        ("excluded: unclear / out of scope", int((~t.demand & ~t.ticket_id.isin(ti[ti.intent_id.isin(["internal_tracking", "test_ticket"])].ticket_id) & (t.resolution_type != "junk")).sum())),
         ("demand tickets", len(d)),
         ("demand tickets with River template title", int(d.title_is_template.sum())),
         ("demand ticket-intent rows", len(dti)),
@@ -95,20 +91,13 @@ def main(db):
         "top_country": g.country.agg(lambda s: s.value_counts().index[0]),
         "top_country_share": g.country.agg(lambda s: s.value_counts(normalize=True).iloc[0]),
     }).reset_index().merge(intents, on="intent_id").sort_values("tickets", ascending=False)
-    tab["skywalker_fit"] = tab.answer_class.map(FIT)
     tab["cum_share_of_intent_rows"] = tab.tickets.cumsum() / tab.tickets.sum()
-    cols = ["intent_id", "name", "domain", "faq_question", "answer_class", "skywalker_fit", "tickets",
+    cols = ["intent_id", "name", "domain", "faq_question", "answer_class", "best_channel", "tickets",
             "share_of_demand_tickets", "cum_share_of_intent_rows"] + [c for c in tab.columns if c not in
-            ("intent_id", "name", "domain", "faq_question", "answer_class", "skywalker_fit", "tickets",
+            ("intent_id", "name", "domain", "faq_question", "answer_class", "best_channel", "tickets",
              "share_of_demand_tickets", "cum_share_of_intent_rows")]
     tab[cols].to_csv(OUT / "01_intents.csv", index=False, float_format="%.3f")
 
-    # 3. Skywalker opportunity at ticket level
-    opp = (d.groupby("fit").size().rename("tickets").to_frame()
-           .assign(share=lambda x: x.tickets / x.tickets.sum()))
-    opp["of_which_upgraded_by_knowledge_root_cause"] = d[d.resolution_type == "knowledge"].groupby("fit").size().reindex(opp.index).fillna(0).astype(int)
-    opp.loc["full", "of_which_upgraded_by_knowledge_root_cause"] = int(((d.resolution_type == "knowledge") & (d.ticket_id.map(fit_basis) != "full")).sum())
-    opp.to_csv(OUT / "02_skywalker_fit.csv", float_format="%.3f")
     pd.crosstab(dti.intent_id, dti.resolution_type).to_csv(OUT / "02_intent_x_resolution.csv")
 
     # 4. Monthly volume by intent (creation month; full months only for trend claims)
@@ -186,10 +175,58 @@ def main(db):
                                     tier2plus=("support_tier", lambda s: (s >= 2).mean()),
                                     third_party=("third_party", lambda s: s.notna().mean())).sort_values("tickets", ascending=False)
     eff.to_csv(OUT / "08_domain_effort.csv", float_format="%.3f")
-    pd.crosstab(d.origin, d.fit, margins=True).to_csv(OUT / "08_origin_x_fit.csv")
+    pd.crosstab(d.origin, d.ticket_id.map(tch), margins=True).to_csv(OUT / "08_origin_x_channel.csv")
     pd.crosstab(d.error_per_ticket, d.resolution_type).to_csv(OUT / "08_error_per_ticket_x_resolution.csv")
+    # 10. Replacement channel: all demand at a high level (intent rows and whole tickets)
+    rows = dti.channel.value_counts().reindex(CHANNELS).rename("intent_rows").to_frame()
+    rows["tickets_by_hardest_channel"] = tch.value_counts().reindex(CHANNELS).fillna(0).astype(int)
+    rows["share_of_tickets"] = rows.tickets_by_hardest_channel / len(d)
+    rows["cum_share_of_tickets"] = rows.share_of_tickets.cumsum()
+    rows.to_csv(OUT / "09_channel_summary.csv", float_format="%.3f")
+    ich = dti.pivot_table(index="intent_id", columns="channel", values="ticket_id", aggfunc="count", fill_value=0)
+    ich = ich.reindex(columns=[c for c in CHANNELS if c in ich.columns])
+    ich.insert(0, "tickets", ich.sum(axis=1))
+    ich = ich.join(intents.set_index("intent_id")[["name", "best_channel", "agent_capability"]]).sort_values("tickets", ascending=False)
+    ich.to_csv(OUT / "09_intent_x_channel.csv")
+    cap = (dti[dti.channel == "agent_action"].merge(intents[["intent_id", "agent_capability"]], on="intent_id")
+           .groupby("agent_capability").ticket_id.nunique().sort_values(ascending=False).rename("tickets"))
+    cap.to_csv(OUT / "09_agent_capabilities.csv")
+
+    # 11. Deep dive: the answerable set (documentation alone resolves the need)
+    a = dti[dti.channel == "answer"]
+    ga = a.groupby("intent_id")
+    deep = pd.DataFrame({
+        "answerable_tickets": ga.ticket_id.nunique(),
+        "share_of_intent_answerable": ga.ticket_id.nunique() / dti.groupby("intent_id").ticket_id.nunique(),
+        "via_knowledge_root_cause": ga.channel_basis.apply(lambda s: (s == "root_cause:knowledge").mean()),
+        "transferred_from_expense": ga.resolution_type.apply(lambda s: (s == "routing").mean()),
+        "origin_river": ga.origin.apply(lambda s: (s == "River").mean()),
+        "chose_not_on_river_topic": ga.river_topic.apply(lambda s: s.fillna("").str.contains("not (?:listed|mentioned)? ?on river", case=False).mean()),
+        "days_to_last_conv_p50": ga.days_to_last_conv.median(),
+        "tier2plus_share": ga.support_tier.apply(lambda s: (s >= 2).mean()),
+        "repeat_same_intent_30d": ga.repeat_same_intent_30d.mean(),
+        "amer": ga.region.apply(lambda s: (s == "AMER").mean()),
+        "emea": ga.region.apply(lambda s: (s == "EMEA").mean()),
+        "apac": ga.region.apply(lambda s: (s == "APAC").mean()),
+        "top_country": ga.country.agg(lambda s: s.value_counts().index[0]),
+        "top_country_share": ga.country.agg(lambda s: s.value_counts(normalize=True).iloc[0]),
+    }).join(intents.set_index("intent_id")[["name", "faq_question"]]).sort_values("answerable_tickets", ascending=False)
+    deep["cum_share"] = deep.answerable_tickets.cumsum() / deep.answerable_tickets.sum()
+    deep.to_csv(OUT / "10_answerable_intents.csv", float_format="%.3f")
+    a.pivot_table(index="intent_id", columns="create_month", values="ticket_id", aggfunc="nunique", fill_value=0).to_csv(OUT / "10_answerable_by_month.csv")
+    pd.DataFrame([
+        ("demand tickets", len(d)),
+        ("tickets with >=1 answerable intent", a.ticket_id.nunique()),
+        ("tickets where every intent is answerable", int((tch == "answer").sum())),
+        ("answerable intent rows", len(a)),
+        ("answerable intent rows from intents whose default is answer", int((a.channel_basis == "intent_default").sum())),
+        ("answerable intent rows from action intents resolved as knowledge", int((a.channel_basis == "root_cause:knowledge").sum())),
+        ("answer-first tickets: not fully answerable, but an intent's eligibility/process is documentable",
+         int(dti[(dti.ticket_id.map(tch) != "answer") & dti.answer_class.str.startswith("doc_then")].ticket_id.nunique())),
+    ], columns=["measure", "value"]).to_csv(OUT / "10_answerable_summary.csv", index=False)
+
     print(disp.to_string(index=False))
-    print(opp.to_string())
+    print(rows.to_string())
 
 
 if __name__ == "__main__":

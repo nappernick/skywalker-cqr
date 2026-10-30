@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parent.parent
 CFG = ROOT / "config"
 SEP = "|"
 # aliases that are also ordinary title vocabulary (vendor names, words) are not scrubbed
+EXCLUSIVE = ("test_ticket", "team_membership_request", "internal_tracking")  # whole-ticket intents
 ALIAS_IS_WORD = {"river", "sixt", "self", "other", "vir"}
 
 
@@ -51,6 +52,18 @@ def load_rules():
     return text, labels, intents, roots
 
 
+def ticket_channel(default, resolution_type):
+    """Refine an intent's default channel with what the resolver actually had to do."""
+    if default == "none":
+        return default, "intent_default"
+    override = {"knowledge": "answer", "defect": "engineering_fix", "feedback": "intake_and_route"}.get(resolution_type)
+    if resolution_type == "account_fix" and default == "answer":
+        override = "agent_action"
+    if override and override != default:
+        return override, f"root_cause:{resolution_type}"
+    return default, "intent_default"
+
+
 def parse_title(title, aliases):
     """Split 'Location | Topic | alias' templates; strip aliases from the rest."""
     t = fix_mojibake(title)
@@ -71,8 +84,9 @@ def assign_intents(text, labels, rules, label_rules, fallback):
     for intent, tier, rx, unless in rules:
         if tier == 1 and fires(rx, unless):
             hits.setdefault(intent, "text")
-    if "internal_admin" in hits:
-        return {"internal_admin": "text"}
+    for exclusive in EXCLUSIVE:
+        if exclusive in hits:
+            return {exclusive: "text"}
     for lab in labels:
         if lab in label_rules:
             hits.setdefault(label_rules[lab], "label")
@@ -109,6 +123,7 @@ def main(xlsx, db_path):
     t["first_status"] = snap.groupby("ShortId").Status.first().reindex(t.ShortId).values
 
     rc = roots.set_index("root_cause")
+    channel = intents.set_index("intent_id").best_channel
     unknown_rc = set(t.RootCause) - set(rc.index)
     assert not unknown_rc, f"unmapped root causes: {unknown_rc}"
 
@@ -144,7 +159,10 @@ def main(xlsx, db_path):
             requester_is_staff=r.RequesterIdentity in staff,
             n_intents=len(hits),
         ))
-        ti_rows += [dict(ticket_id=r.ShortId, intent_id=i, source=s) for i, s in hits.items()]
+        rt = rc.loc[r.RootCause, "resolution_type"]
+        ti_rows += [dict(ticket_id=r.ShortId, intent_id=i, source=s,
+                         **dict(zip(("channel", "channel_basis"), ticket_channel(channel[i], rt))))
+                    for i, s in hits.items()]
         tag_rows += [dict(ticket_id=r.ShortId, tag=x) for x in tags if not x.startswith("River-wfss-")]
         label_rows += [dict(ticket_id=r.ShortId, label=x) for x in labels]
 
