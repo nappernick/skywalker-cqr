@@ -11,6 +11,7 @@ import { Coverage } from "./pages/Coverage";
 import { IntentMap } from "./pages/IntentMap";
 import { Overview } from "./pages/Overview";
 import { TimePlace } from "./pages/TimePlace";
+import { heroFor, type TabId } from "./pages/heroes";
 import type { PageProps } from "./pages/types";
 import { useFilters } from "./state/filters";
 import { CHANNEL_LABEL, fmtInt, fmtMonth, ORIGIN_LABEL, pct } from "./ui/format";
@@ -27,8 +28,7 @@ const TABS = [
   { id: "time", label: "Time & place", Page: TimePlace },
   { id: "bundles", label: "Bundles & journeys", Page: Bundles },
   { id: "agents", label: "Agents & routing", Page: Agents },
-] as const satisfies readonly { readonly id: string; readonly label: string; readonly Page: (p: PageProps) => ReactNode }[];
-type TabId = (typeof TABS)[number]["id"];
+] as const satisfies readonly { readonly id: TabId; readonly label: string; readonly Page: (p: PageProps) => ReactNode }[];
 
 const tabFromHash = (): TabId => TABS.find((t) => `#${t.id}` === window.location.hash)?.id ?? "overview";
 const NO_HUMAN: ReadonlySet<Channel> = new Set<Channel>(["answer", "agent_action", "intake_and_route"]);
@@ -60,6 +60,7 @@ function Dashboard({ index }: { readonly index: Index }) {
   const n = model.tickets.length;
   const share = (test: (t: (typeof model.tickets)[number]) => boolean) => (n ? pct(model.tickets.filter(test).length / n) : "—");
   const active = TABS.find((t) => t.id === tab) ?? TABS[0];
+  const hero = heroFor(active.id, model);
   const intents = [...index.meta.values()].sort((a, b) => a.name.localeCompare(b.name)).map((r) => [r.intent, r.name] as const);
   const months = index.months.map((mo) => [mo, fmtMonth(mo)] as const);
   return (
@@ -81,10 +82,10 @@ function Dashboard({ index }: { readonly index: Index }) {
         <section className="hero">
           <span className="hero-num">{String(TABS.findIndex((t) => t.id === active.id) + 1).padStart(2, "0")}</span>
           <div className="hero-head">
-            <h1>{active.label === "Overview" ? "Travel support demand, Nov 2025 – Sep 2026" : active.label}</h1>
-            <p>{fmtInt(n)} travel-support tickets in view, each counted under its hardest need: what would best replace the human who handled it.</p>
+            <h1>{hero.title}</h1>
+            <p>{hero.summary}</p>
           </div>
-          <p className="hero-statement">{share((t) => t.channel === "answer")} could be answered from docs. {share((t) => t.channel === "agent_action")} need an agent to act.</p>
+          <p className="hero-statement">{hero.statement}</p>
         </section>
         <div className="filters">
           <Select label="Region" all="All regions" value={f.region} options={index.regions.map((r) => [r, r] as const)} onChange={(region) => filters.set({ region })} />
