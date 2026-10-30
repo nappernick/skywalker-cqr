@@ -1,73 +1,488 @@
-import { color as d3color, interpolateRgb, scaleDiverging } from "d3";
-import { useEffect, useRef } from "react";
+import { interpolateRgb } from "d3";
+import { useEffect, useMemo, useRef } from "react";
+import * as THREE from "three";
+import { CHANNELS } from "../domain/types";
 import { COVERAGE_LABEL, fmtInt, pct } from "../ui/format";
 import { prefersReducedMotion, useWidth } from "../ui/hooks";
 import { channelColor, coverageColor, FONT_FAMILY, seriesColor, useTheme, type Theme } from "../ui/theme";
 import { useTooltip, type TipContent } from "../ui/Tooltip";
-import { HEIGHT_LABEL, PART_TOP, parts, type Level, type TerrainData, type TerrainGroup, type TerrainIntent, type TerrainState } from "./data";
-import { HOME_VIEW, Orbit, type FlyTarget, type Projected, type View } from "./orbit";
+import { HEIGHT_LABEL, PART_TOP, parts, type ColorBasis, type LandscapeSeries, type Level, type SeriesIntent, type TerrainData, type TerrainState } from "./data";
+import { field, writeContours, GRID, gridToWorld, kernels, maxOf, sample, type Kernels } from "./landscape";
+import { HOME_VIEW, Orbit, type FlyTarget, type View } from "./orbit";
 
-const HEIGHT = 540;
-const COL_H = 0.62;
+const HEIGHT = 580;
+/** World height of the tallest hill. */
+const TOP = 0.5;
+const CONTOURS = 9;
+const SIGMA = 0.1;
 const LEVEL_ZOOM: Readonly<Record<Level, number>> = { 0: 1, 1: 1.35, 2: 3.4 };
-
-interface PartColumn {
-  readonly kind: "part";
-  readonly id: string;
-  readonly label: string;
-  readonly parent: TerrainIntent;
-  readonly idx: number;
-  readonly n: number;
-  readonly share: number;
-  readonly ofIntent: number;
-  readonly channel: TerrainIntent["channel"];
-  readonly x: number;
-  readonly z: number;
-}
-
-type Item = TerrainGroup | TerrainIntent | PartColumn;
-interface Column {
-  readonly item: Item;
-  readonly x: number;
-  readonly z: number;
-  readonly r: number;
-  readonly hgt: number;
-  readonly dim: boolean;
-}
-interface Hit {
-  readonly col: Column;
-  readonly x: number;
-  readonly y: number;
-  readonly rs: number;
-  readonly depth: number;
-}
+const TWEEN_MS = 650;
+const MONTHS_PER_SECOND = 1 / 1.05;
 
 export type Go = (level: Level, group: string | null, intent: string | null, fly?: boolean) => void;
+
+// ---------- colour groups ----------
+
+interface Grouping {
+  readonly groupOf: Int32Array;
+  readonly n: number;
+  readonly color: (g: number) => string;
+}
+
+function grouping(series: LandscapeSeries, mode: ColorBasis, t: Theme): Grouping {
+  const ints = series.intents;
+  switch (mode) {
+    case "group":
+      return { groupOf: Int32Array.from(ints, (d) => d.domainIndex), n: Math.max(1, ...ints.map((d) => d.domainIndex + 1)), color: (g) => seriesColor(t, g) };
+    case "coverage": {
+      const cov = ["full", "partial", "none"] as const;
+      return { groupOf: Int32Array.from(ints, (d) => { const i = cov.findIndex((c) => c === d.meta.coverage); return i < 0 ? 3 : i; }), n: 4,
+        color: (g) => { const c = cov[g]; return c === undefined ? t.muted : coverageColor(t, c); } };
+    }
+    case "channel":
+      return { groupOf: Int32Array.from(ints, (d) => (d.channel === null ? CHANNELS.length : CHANNELS.indexOf(d.channel))), n: CHANNELS.length + 1,
+        color: (g) => { const c = CHANNELS[g]; return c === undefined ? t.muted : channelColor(t, c); } };
+    case "trend":
+      return { groupOf: Int32Array.from(ints, (d) => (d.trend > 0.35 ? 0 : d.trend < -0.35 ? 2 : 1)), n: 3,
+        color: (g) => (g === 0 ? seriesColor(t, 0) : g === 2 ? seriesColor(t, 1) : t.muted) };
+  }
+}
+
+// ---------- animation ----------
+
+interface Anim {
+  /** Continuous frame position: 0 = all months, i = month i. */
+  t: number;
+  series: LandscapeSeries;
+  fromWeights: Float64Array | null;
+  fromMax: number;
+  heightMix: number;
+  colorFrom: ColorBasis;
+  colorMix: number;
+  /** Height exponent: 1 = linear, 0.5 = square root. */
+  power: number;
+  /** Behind an intent's parts the landscape fades toward the ground (0..1). */
+  backdrop: number;
+  labelAlpha: Map<string, number>;
+  labelTarget: Map<string, number>;
+  /** Sticky label placements, so labels do not hop between frames. */
+  placement: Map<string, number>;
+}
+
+const ease = (k: number) => (k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2);
+
+function weightsAt(series: LandscapeSeries, t: number): Float64Array {
+  const last = series.frames.length - 1;
+  const i = Math.max(0, Math.min(last, Math.floor(t)));
+  const j = Math.min(last, i + 1);
+  const f = Math.max(0, Math.min(1, t - i));
+  const a = series.frames[i];
+  const b = series.frames[j];
+  const out = new Float64Array(series.intents.length);
+  if (!a || !b) return out;
+  for (let n = 0; n < out.length; n += 1) out[n] = (a[n] ?? 0) * (1 - f) + (b[n] ?? 0) * f;
+  return out;
+}
+
+function seriesMax(series: LandscapeSeries, k: Kernels): number {
+  const one = new Int32Array(series.intents.length);
+  return Math.max(1e-9, ...series.frames.map((w) => maxOf(field(k, w, one, 1).values)));
+}
+
+// ---------- the WebGL scene ----------
+
+interface Scene {
+  readonly renderer: THREE.WebGLRenderer;
+  readonly scene: THREE.Scene;
+  readonly camera: THREE.PerspectiveCamera;
+  readonly surface: THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
+  readonly ground: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshStandardMaterial>;
+  readonly lines: THREE.LineSegments<THREE.BufferGeometry, THREE.LineBasicMaterial>;
+  readonly dots: THREE.InstancedMesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>;
+  readonly orbs: THREE.InstancedMesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>;
+}
+
+const MAX_ORBS = PART_TOP + 1;
+/** Capacity of the reused contour-line buffer, in floats. */
+const LINE_FLOATS = 6 * 60000;
+
+function makeScene(canvas: HTMLCanvasElement, w: number, h: number, nIntents: number): Scene {
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  renderer.setSize(w, h, false);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(32, w / h, 0.05, 50);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8a8a, 1.6));
+  const sun = new THREE.DirectionalLight(0xffffff, 1.5);
+  sun.position.set(-2.2, 3.2, 1.6);
+  scene.add(sun);
+
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(GRID * GRID * 3);
+  for (let j = 0; j < GRID; j += 1) {
+    for (let i = 0; i < GRID; i += 1) {
+      const k = (j * GRID + i) * 3;
+      pos[k] = gridToWorld(i);
+      pos[k + 2] = gridToWorld(j);
+    }
+  }
+  const index: number[] = [];
+  for (let j = 0; j < GRID - 1; j += 1) {
+    for (let i = 0; i < GRID - 1; i += 1) {
+      const a = j * GRID + i;
+      index.push(a, a + GRID, a + 1, a + 1, a + GRID, a + GRID + 1);
+    }
+  }
+  geo.setIndex(index);
+  geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute("color", new THREE.BufferAttribute(new Float32Array(GRID * GRID * 3), 3));
+  const surface = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, metalness: 0 }));
+  scene.add(surface);
+
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshStandardMaterial({ roughness: 1, metalness: 0 }));
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = -0.0015;
+  scene.add(ground);
+
+  const lineGeo = new THREE.BufferGeometry();
+  lineGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(LINE_FLOATS), 3).setUsage(THREE.DynamicDrawUsage));
+  const lines = new THREE.LineSegments(lineGeo, new THREE.LineBasicMaterial({ transparent: true, opacity: 0.4 }));
+  lines.frustumCulled = false;
+  scene.add(lines);
+  const dots = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 20, 14), new THREE.MeshStandardMaterial({ roughness: 0.55, metalness: 0 }), Math.max(1, nIntents));
+  const orbs = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 32, 22), new THREE.MeshStandardMaterial({ roughness: 0.45, metalness: 0 }), MAX_ORBS);
+  scene.add(dots, orbs);
+  return { renderer, scene, camera, surface, ground, lines, dots, orbs };
+}
+
+function disposeScene(s: Scene): void {
+  for (const m of [s.surface, s.ground, s.lines, s.dots, s.orbs]) {
+    m.geometry.dispose();
+    m.material.dispose();
+  }
+  s.renderer.dispose();
+}
+
+function placeCamera(cam: THREE.PerspectiveCamera, v: View): void {
+  const r = 3.4 / v.zoom;
+  const target = new THREE.Vector3(v.tx, 0.08, v.tz);
+  cam.position.set(v.tx + r * Math.cos(v.pitch) * Math.sin(v.yaw), 0.08 + r * Math.sin(v.pitch), v.tz + r * Math.cos(v.pitch) * Math.cos(v.yaw));
+  cam.lookAt(target);
+  cam.updateMatrixWorld();
+}
+
+// ---------- labels and hits ----------
+
+interface Anchor {
+  readonly kind: "intent" | "group" | "part";
+  readonly id: string;
+  readonly value: string;
+  readonly name: string;
+  readonly x: number;
+  readonly y: number;
+  /** Pick radius in px. */
+  readonly r: number;
+  readonly depth: number;
+  readonly weight: number;
+  readonly dim: boolean;
+  readonly tip: TipContent;
+  readonly intent: SeriesIntent | null;
+}
+
+interface Box {
+  readonly x: number;
+  readonly y: number;
+  readonly w: number;
+  readonly h: number;
+}
 
 interface Live {
   td: TerrainData;
   state: TerrainState;
   theme: Theme;
-  hover: Hit | null;
-  hits: Hit[];
+  anim: Anim;
+  kern: Kernels;
+  max: number;
+  hover: Anchor | null;
+  anchors: Anchor[];
+  boxes: Map<string, Box>;
   go: Go;
   goUp: () => void;
   onShiftPick: (id: string) => void;
 }
 
-const rgba = (c: string, a: number): string => {
-  const col = d3color(c);
-  if (!col) return c;
-  col.opacity = a;
-  return col.formatRgb();
-};
-const shade = (c: string, k: number, a: number): string => {
-  const col = d3color(c);
-  if (!col) return c;
-  const out = k >= 0 ? col.brighter(k) : col.darker(-k);
-  out.opacity = a;
-  return out.formatRgb();
-};
+/** Label offsets tried in order (box centre relative to the anchor), so crowded labels move rather than overlap. */
+const SPOTS: readonly (readonly [number, number])[] = [[0, -34], [-70, -46], [70, -46], [0, -70], [-110, -18], [110, -18], [-80, -88], [80, -88], [0, -106]];
+
+const rgb = (c: THREE.Color) => [c.r, c.g, c.b] as const;
+
+function render(o: Orbit, S: Scene, L: Live, overlay: CanvasRenderingContext2D): void {
+  const { theme: t, state: st, anim: A, kern } = L;
+  const W = o.width;
+  const H = o.height;
+
+  // Weights now, blended across a size-basis tween.
+  let w = weightsAt(A.series, A.t);
+  const hk = ease(A.heightMix);
+  if (A.fromWeights && hk < 1) {
+    const from = A.fromWeights;
+    w = w.map((v, n) => (from[n] ?? 0) * (1 - hk) + v * hk);
+  }
+  const vmax = A.fromWeights && hk < 1 ? A.fromMax * (1 - hk) + L.max * hk : L.max;
+  const heightOf = (v: number) => TOP * Math.min(1, Math.max(0, v / vmax)) ** A.power;
+  const gNew = grouping(A.series, st.color, t);
+  const ck = ease(A.colorMix);
+  const gOld = ck < 1 ? grouping(A.series, A.colorFrom, t) : null;
+  const fNew = field(kern, w, gNew.groupOf, gNew.n);
+  const fOld = gOld ? field(kern, w, gOld.groupOf, gOld.n) : null;
+
+  // Surface heights and colours. Colour is the dominant group's, faded into the ground at the foothills and
+  // where groups mix, so colour always means "most of the demand here is this".
+  const groundCol = new THREE.Color(interpolateRgb(t.frame, t.rule)(0.13));
+  const [gr, gg, gb] = rgb(groundCol);
+  const cNew = Array.from({ length: gNew.n }, (_, g) => rgb(new THREE.Color(gNew.color(g))));
+  const cOld = gOld ? Array.from({ length: gOld.n }, (_, g) => rgb(new THREE.Color(gOld.color(g)))) : [];
+  const pos = S.surface.geometry.getAttribute("position");
+  const col = S.surface.geometry.getAttribute("color");
+  const posArr = pos.array;
+  const colArr = col.array;
+  const fadeTo = 1 - A.backdrop * 0.7;
+  // Dominant group and its strength at cell k: [index, strength], written into a reused pair.
+  const dom = [0, 0];
+  const dominant = (groups: readonly Float64Array[], k: number, v: number) => {
+    let best = 0;
+    let bi = -1;
+    for (let gi = 0; gi < groups.length; gi += 1) { const x = groups[gi]?.[k] ?? 0; if (x > best) { best = x; bi = gi; } }
+    const share = v > 0 ? best / v : 0;
+    dom[0] = bi;
+    dom[1] = Math.max(0, Math.min(1, (share - 0.34) / 0.3)) * Math.min(1, v / vmax / 0.06) * fadeTo;
+  };
+  for (let k = 0; k < GRID * GRID; k += 1) {
+    const v = fNew.values[k] ?? 0;
+    if (posArr instanceof Float32Array) posArr[k * 3 + 1] = heightOf(v);
+    dominant(fNew.groups, k, v);
+    const cn = cNew[dom[0] ?? -1];
+    const sn = dom[1] ?? 0;
+    let r = cn ? gr + (cn[0] - gr) * sn : gr;
+    let g = cn ? gg + (cn[1] - gg) * sn : gg;
+    let bl = cn ? gb + (cn[2] - gb) * sn : gb;
+    if (fOld && ck < 1) {
+      dominant(fOld.groups, k, v);
+      const co = cOld[dom[0] ?? -1];
+      const so = dom[1] ?? 0;
+      const ro = co ? gr + (co[0] - gr) * so : gr;
+      const go2 = co ? gg + (co[1] - gg) * so : gg;
+      const bo = co ? gb + (co[2] - gb) * so : gb;
+      r = ro + (r - ro) * ck; g = go2 + (g - go2) * ck; bl = bo + (bl - bo) * ck;
+    }
+    if (colArr instanceof Float32Array) { colArr[k * 3] = r; colArr[k * 3 + 1] = g; colArr[k * 3 + 2] = bl; }
+  }
+  pos.needsUpdate = true;
+  col.needsUpdate = true;
+  S.surface.geometry.computeVertexNormals();
+  S.surface.geometry.computeBoundingSphere();
+  S.ground.material.color.copy(groundCol);
+
+  // Contour rings, lifted a hair above the surface.
+  const thresholds = Array.from({ length: CONTOURS }, (_, k) => vmax * ((k + 1) / (CONTOURS + 1)) ** (1 / A.power));
+  const lineAttr = S.lines.geometry.getAttribute("position");
+  if (lineAttr.array instanceof Float32Array) {
+    const n = writeContours(fNew.values, thresholds, heightOf, 0.0025, lineAttr.array);
+    S.lines.geometry.setDrawRange(0, n / 3);
+    lineAttr.needsUpdate = true;
+  }
+  S.lines.material.color.set(t.text);
+  S.lines.material.opacity = 0.32 * (1 - A.backdrop * 0.6);
+
+  // Intent markers (level 1+) and part spheres (level 2).
+  const ints = A.series.intents;
+  const maxW = Math.max(1e-9, ...w);
+  const m4 = new THREE.Matrix4();
+  const tmp = new THREE.Color();
+  const surfaceY = (x: number, z: number) => heightOf(sample(fNew.values, x, z));
+  ints.forEach((d, n) => {
+    const v = w[n] ?? 0;
+    const show = st.level >= 1 && v > 0;
+    const r = show ? 0.007 + 0.016 * Math.sqrt(v / maxW) : 0;
+    m4.makeScale(r, r, r).setPosition(d.x, surfaceY(d.x, d.z) + r * 0.6, d.z);
+    S.dots.setMatrixAt(n, m4);
+    const dim = st.group !== null && d.domain !== st.group;
+    S.dots.setColorAt(n, tmp.set(gNew.color(gNew.groupOf[n] ?? 0)).lerp(groundCol, dim ? 0.75 : 0));
+  });
+  S.dots.instanceMatrix.needsUpdate = true;
+  if (S.dots.instanceColor) S.dots.instanceColor.needsUpdate = true;
+
+  const focus = st.level === 2 && st.intent !== null ? L.td.byId.get(st.intent) : undefined;
+  const ps = focus ? parts(focus, st.part) : [];
+  const pmax = Math.max(1, ...ps.map((p) => p.n));
+  const partAt = ps.map((p, i) => {
+    const a = (i / ps.length) * Math.PI * 2 - Math.PI / 2;
+    const rr = 0.2 * (st.part === "month" ? 1 : 0.6 + 0.4 * Math.sqrt(i / ps.length + 0.02));
+    const x = (focus?.x ?? 0) + Math.cos(a) * rr;
+    const z = (focus?.z ?? 0) + Math.sin(a) * rr;
+    const r = 0.012 + 0.03 * Math.sqrt(p.n / pmax);
+    return { p, x, z, r, y: Math.max(surfaceY(x, z), focus ? surfaceY(focus.x, focus.z) * 0.6 : 0) + r + 0.03 };
+  });
+  const parentColor = focus ? gNew.color(gNew.groupOf[ints.findIndex((d) => d.id === focus.id)] ?? 0) : t.muted;
+  for (let i = 0; i < MAX_ORBS; i += 1) {
+    const it = partAt[i];
+    if (it) {
+      m4.makeScale(it.r, it.r, it.r).setPosition(it.x, it.y, it.z);
+      S.orbs.setColorAt(i, tmp.set(st.part === "channel" && it.p.channel !== null ? channelColor(t, it.p.channel) : interpolateRgb(parentColor, t.muted)(i / (PART_TOP + 2))));
+    } else m4.makeScale(0, 0, 0);
+    S.orbs.setMatrixAt(i, m4);
+  }
+  S.orbs.instanceMatrix.needsUpdate = true;
+  if (S.orbs.instanceColor) S.orbs.instanceColor.needsUpdate = true;
+
+  placeCamera(S.camera, o.view);
+  S.renderer.render(S.scene, S.camera);
+
+  // ---------- anchors for labels, tooltips and picking ----------
+  const v3 = new THREE.Vector3();
+  const toScreen = (x: number, y: number, z: number) => {
+    v3.set(x, y, z).project(S.camera);
+    return { x: (v3.x * 0.5 + 0.5) * W, y: (-v3.y * 0.5 + 0.5) * H, depth: v3.z };
+  };
+  const per = HEIGHT_LABEL[st.height];
+  const anchors: Anchor[] = [];
+  if (st.level === 0) {
+    // One label per category, on its highest point.
+    const best = new Map<string, { d: SeriesIntent; h: number; share: number; n: number }>();
+    ints.forEach((d, n) => {
+      const h = surfaceY(d.x, d.z);
+      const cur = best.get(d.domain);
+      const share = (cur?.share ?? 0) + (w[n] ?? 0);
+      best.set(d.domain, { d: cur && cur.h >= h ? cur.d : d, h: Math.max(h, cur?.h ?? 0), share, n: (cur?.n ?? 0) + 1 });
+    });
+    for (const [dom, b] of best) {
+      if (b.share <= 0) continue;
+      const p = toScreen(b.d.x, b.h, b.d.z);
+      anchors.push({ kind: "group", id: dom, value: pct(b.share), name: dom, x: p.x, y: p.y, r: 18, depth: p.depth, weight: b.share, dim: false, intent: null,
+        tip: { title: dom, lines: [`${pct(b.share)} ${per}`, `${b.n} intents`, "Click to zoom in"] } });
+    }
+  } else {
+    ints.forEach((d, n) => {
+      const v = w[n] ?? 0;
+      if (v <= 0) return;
+      const p = toScreen(d.x, surfaceY(d.x, d.z), d.z);
+      const td = L.td.byId.get(d.id);
+      anchors.push({ kind: "intent", id: d.id, value: pct(v), name: d.label, x: p.x, y: p.y, r: 8, depth: p.depth, weight: v,
+        dim: st.group !== null && d.domain !== st.group, intent: d,
+        tip: { title: d.label, lines: [
+          `${pct(v)} ${per}${td ? ` · #${td.rank} of ${L.td.intents.length}` : ""}`, `Category: ${d.domain}`,
+          ...(td ? [`Trend: ${pct(td.shareFirst)} in Jan–Mar → ${pct(td.shareLast)} in Jul–Sep`] : []),
+          `FAQ coverage: ${d.meta.coverage === null ? "—" : COVERAGE_LABEL[d.meta.coverage]}`, "Click to zoom into its parts; shift-click to filter"] } });
+    });
+  }
+  for (const it of partAt) {
+    if (!focus) break;
+    const p = toScreen(it.x, it.y + it.r, it.z);
+    anchors.push({ kind: "part", id: `${focus.id}:${it.p.label}`, value: pct(it.p.n / focus.n), name: it.p.label, x: p.x, y: p.y, r: 12, depth: p.depth,
+      weight: 1 + it.p.n / focus.n, dim: false, intent: null, tip: { title: it.p.label, lines: [`${pct(it.p.n / focus.n)} of ${focus.label}`, `${fmtInt(it.p.n)} needs`] } });
+  }
+  L.anchors = anchors;
+
+  // ---------- labels: priority order, sticky non-overlapping placement, fade ----------
+  const ctx = overlay;
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  const font = (size: number, weight: number) => `${weight} ${size}px ${FONT_FAMILY}`;
+  const budget = st.level === 0 ? 20 : st.level === 1 ? (st.group !== null ? 24 : 12) : 16;
+  const pinned = new Set([L.hover?.id, st.intent].filter((x): x is string => typeof x === "string"));
+  const order = anchors.filter((a) => !a.dim && (st.level < 2 || a.kind === "part" || pinned.has(a.id)))
+    .sort((a, b) => Number(pinned.has(b.id)) - Number(pinned.has(a.id)) || b.weight - a.weight);
+  const placed: Box[] = [];
+  const marks: Box[] = anchors.map((a) => ({ x: a.x - 5, y: a.y - 5, w: 10, h: 10 }));
+  const overlaps = (b: Box, list: readonly Box[]) => list.some((o2) => b.x < o2.x + o2.w && b.x + b.w > o2.x && b.y < o2.y + o2.h && b.y + b.h > o2.y);
+  const boxes = new Map<string, Box>();
+  const target = new Map<string, number>();
+  for (const a of order) {
+    if (boxes.size >= budget && !pinned.has(a.id)) break;
+    ctx.font = font(12.5, 500);
+    const nameW = ctx.measureText(a.name.length > 38 ? `${a.name.slice(0, 37)}…` : a.name).width;
+    ctx.font = font(13, 800);
+    const bw = Math.max(nameW, ctx.measureText(a.value).width) + 18;
+    const bh = 38;
+    const prev = A.placement.get(a.id);
+    const tries = prev === undefined ? SPOTS.map((_, i) => i) : [prev, ...SPOTS.map((_, i) => i).filter((i) => i !== prev)];
+    for (const si of tries) {
+      const [dx, dy] = SPOTS[si] ?? [0, -34];
+      const b = { x: Math.max(4, Math.min(W - bw - 4, a.x + dx - bw / 2)), y: Math.max(4, Math.min(H - bh - 4, a.y + dy - bh / 2)), w: bw, h: bh };
+      if (overlaps(b, placed) || overlaps(b, marks.filter((m) => !(m.x + 5 === a.x && m.y + 5 === a.y)))) continue;
+      placed.push(b);
+      boxes.set(a.id, b);
+      A.placement.set(a.id, si);
+      target.set(a.id, 1);
+      break;
+    }
+  }
+  for (const a of anchors) if (!target.has(a.id)) target.set(a.id, 0);
+  A.labelTarget = target;
+  L.boxes = boxes;
+  for (const a of anchors) {
+    const alpha = A.labelAlpha.get(a.id) ?? 0;
+    const b = boxes.get(a.id);
+    if (alpha < 0.02 || !b) continue;
+    ctx.globalAlpha = alpha;
+    // Leader from the box to the point it names.
+    const lx = Math.max(b.x + 6, Math.min(b.x + b.w - 6, a.x));
+    const ly = a.y < b.y ? b.y : b.y + b.h;
+    ctx.strokeStyle = t.text2;
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(a.x, a.y); ctx.stroke();
+    ctx.fillStyle = t.text2;
+    ctx.beginPath(); ctx.arc(a.x, a.y, 2.2, 0, Math.PI * 2); ctx.fill();
+    const hot = pinned.has(a.id);
+    ctx.fillStyle = hot ? t.text : t.frame;
+    ctx.globalAlpha = alpha * (hot ? 0.96 : 0.86);
+    ctx.beginPath(); ctx.roundRect(b.x, b.y, b.w, b.h, 3); ctx.fill();
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = hot ? t.text : t.text2;
+    ctx.stroke();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillStyle = hot ? t.frame : t.text;
+    ctx.font = font(13, 800);
+    ctx.fillText(a.value, b.x + b.w / 2, b.y + 16);
+    ctx.fillStyle = hot ? t.frame : t.text2;
+    ctx.font = font(12.5, 500);
+    ctx.fillText(a.name.length > 38 ? `${a.name.slice(0, 37)}…` : a.name, b.x + b.w / 2, b.y + 31);
+  }
+  ctx.globalAlpha = 1;
+}
+
+/** Steps every tween toward its target; returns true while anything is still moving. */
+function step(L: Live, dt: number, reduce: boolean): boolean {
+  const A = L.anim;
+  const st = L.state;
+  const power = st.scale === "sqrt" ? 0.5 : 1;
+  const backdrop = st.level === 2 ? 1 : 0;
+  if (reduce) {
+    A.t = st.month; A.power = power; A.backdrop = backdrop; A.heightMix = 1; A.colorMix = 1;
+    A.labelAlpha = new Map(A.labelTarget);
+    return false;
+  }
+  let moving = false;
+  const d = st.month - A.t;
+  if (Math.abs(d) > 1e-3) {
+    A.t += Math.sign(d) * Math.min(Math.abs(d), MONTHS_PER_SECOND * Math.max(1, Math.abs(d)) * dt);
+    moving = true;
+  } else A.t = st.month;
+  const toward = (cur: number, tgt: number, rate: number) => {
+    if (Math.abs(tgt - cur) < 1e-3) return tgt;
+    moving = true;
+    return cur + Math.sign(tgt - cur) * Math.min(Math.abs(tgt - cur), rate * dt);
+  };
+  A.heightMix = toward(A.heightMix, 1, 1000 / TWEEN_MS);
+  A.colorMix = toward(A.colorMix, 1, 1000 / TWEEN_MS);
+  A.power = toward(A.power, power, 1000 / TWEEN_MS);
+  A.backdrop = toward(A.backdrop, backdrop, 1000 / TWEEN_MS);
+  for (const [id, tgt] of A.labelTarget) A.labelAlpha.set(id, toward(A.labelAlpha.get(id) ?? 0, tgt, 4));
+  return moving;
+}
 
 export function targetView(td: TerrainData, st: TerrainState): FlyTarget {
   const d = st.intent === null ? undefined : td.byId.get(st.intent);
@@ -77,196 +492,9 @@ export function targetView(td: TerrainData, st: TerrainState): FlyTarget {
   return { tx: 0, tz: 0, zoom: LEVEL_ZOOM[st.level] };
 }
 
-function columns(td: TerrainData, st: TerrainState): Column[] {
-  const height = (v: number, mx: number) => COL_H * (st.scale === "sqrt" ? Math.sqrt(v / mx) : v / mx);
-  if (st.level === 0) {
-    const mx = Math.max(...td.groups.map((g) => g.share));
-    return td.groups.map((g) => ({ item: g, x: g.x, z: g.z, r: 0.2 * Math.sqrt(g.share / mx), hgt: height(g.share, mx), dim: false }));
-  }
-  const d = st.intent === null ? undefined : td.byId.get(st.intent);
-  if (st.level === 1 || !d) {
-    const mx = Math.max(...td.intents.map((x) => x.share));
-    return td.intents.map((x) => ({ item: x, x: x.x, z: x.z, r: 0.075 * Math.sqrt(x.share / mx) + 0.008, hgt: height(x.share, mx), dim: st.group !== null && x.group !== st.group }));
-  }
-  const ps = parts(d, st.part);
-  const mx = Math.max(...ps.map((p) => p.n));
-  return ps.map((p, i) => {
-    const a = (i / ps.length) * Math.PI * 2 - Math.PI / 2;
-    const rr = 0.2 * (st.part === "month" ? 1 : 0.55 + 0.45 * Math.sqrt(i / ps.length + 0.02));
-    const x = d.x + Math.cos(a) * rr;
-    const z = d.z + Math.sin(a) * rr;
-    const item: PartColumn = { kind: "part", id: `${d.id}:${p.label}`, label: p.label, parent: d, idx: i, n: p.n, share: p.n / td.denom, ofIntent: p.n / d.n, channel: p.channel, x, z };
-    return { item, x, z, r: 0.03 * Math.sqrt(p.n / mx) + 0.006, hgt: height(p.n, mx) * 0.55, dim: false };
-  });
-}
-
-function colorOf(item: Item, live: Live): string {
-  const { theme: t, state: st, td } = live;
-  const groupColor = (g: TerrainGroup | undefined) => (g ? seriesColor(t, g.colorIndex) : t.muted);
-  switch (item.kind) {
-    case "group":
-      return groupColor(item);
-    case "part":
-      return st.part === "channel" && item.channel !== null ? channelColor(t, item.channel) : interpolateRgb(colorOf(item.parent, live), t.muted)(item.idx / (PART_TOP + 2));
-    case "intent": {
-      if (st.color === "coverage") return coverageColor(t, item.meta.coverage);
-      if (st.color === "channel") return item.channel === null ? t.muted : channelColor(t, item.channel);
-      if (st.color === "trend") {
-        const ramp = scaleDiverging<string>().domain([-1.5, 0, 1.5]).clamp(true)
-          .interpolator((k) => (k < 0.5 ? interpolateRgb(seriesColor(t, 1), t.muted)(k * 2) : interpolateRgb(t.muted, seriesColor(t, 0))((k - 0.5) * 2)));
-        return ramp(item.trend);
-      }
-      return groupColor(td.groupById.get(item.group));
-    }
-  }
-}
-
-function prism(o: Orbit, c: Column, fill: string, alpha: number, outline: string | null): Hit {
-  const { ctx } = o;
-  const hgt = Math.max(0.002, c.hgt * o.grow);
-  const ring = Array.from({ length: 6 }, (_, k) => {
-    const a = (k / 6) * Math.PI * 2 + Math.PI / 6;
-    return [c.x + Math.cos(a) * c.r, c.z + Math.sin(a) * c.r] as const;
-  });
-  const bot = ring.map(([x, z]) => o.project(x, 0, z));
-  const top = ring.map(([x, z]) => o.project(x, hgt, z));
-  const poly = (pts: readonly Projected[]) => {
-    ctx.beginPath();
-    pts.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
-    ctx.closePath();
-  };
-  const sides = Array.from({ length: 6 }, (_, k) => {
-    const k2 = (k + 1) % 6;
-    const b0 = bot[k];
-    const b1 = bot[k2];
-    const t0 = top[k];
-    const t1 = top[k2];
-    const a = ((k + 0.5) / 6) * Math.PI * 2 + Math.PI / 6;
-    return b0 && b1 && t0 && t1 ? { pts: [b0, b1, t1, t0], depth: (b0.depth + b1.depth) / 2, lit: 0.5 + 0.5 * Math.cos(a - 2.3) } : null;
-  }).flatMap((s) => (s ? [s] : [])).sort((p, q) => q.depth - p.depth);
-  for (const s of sides) {
-    ctx.fillStyle = shade(fill, -(1.1 - s.lit * 0.9), alpha);
-    poly(s.pts);
-    ctx.fill();
-  }
-  ctx.fillStyle = shade(fill, 0.35, alpha);
-  poly(top);
-  ctx.fill();
-  if (outline !== null) {
-    ctx.strokeStyle = outline;
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-  }
-  const cTop = o.project(c.x, hgt, c.z);
-  return { col: c, x: cTop.x, y: cTop.y, rs: Math.max(8, Math.abs(o.project(c.x + c.r, hgt, c.z).x - cTop.x)), depth: cTop.depth };
-}
-
-function draw(o: Orbit, live: Live): void {
-  const { ctx } = o;
-  const { td, state: st, theme: t, hover } = live;
-  const font = (size: number, weight = 400) => `${weight} ${size}px ${FONT_FAMILY}`;
-  ctx.lineWidth = 1;
-  ctx.strokeStyle = rgba(t.fgMuted, 0.16);
-  for (let k = -6; k <= 6; k += 1) {
-    const v = k * 0.2;
-    for (const [a, b] of [[o.project(v, 0, -1.2), o.project(v, 0, 1.2)], [o.project(-1.2, 0, v), o.project(1.2, 0, v)]] as const) {
-      ctx.beginPath();
-      ctx.moveTo(a.x, a.y);
-      ctx.lineTo(b.x, b.y);
-      ctx.stroke();
-    }
-  }
-  if (st.level >= 1) {
-    for (const g of td.groups) {
-      const on = st.group === null || st.group === g.id;
-      const c = seriesColor(t, g.colorIndex);
-      ctx.beginPath();
-      for (let k = 0; k < 36; k += 1) {
-        const p = o.project(g.x + Math.cos((k / 36) * Math.PI * 2) * g.rad, 0, g.z + Math.sin((k / 36) * Math.PI * 2) * g.rad);
-        if (k) ctx.lineTo(p.x, p.y);
-        else ctx.moveTo(p.x, p.y);
-      }
-      ctx.closePath();
-      ctx.fillStyle = rgba(c, on ? 0.1 : 0.04);
-      ctx.fill();
-      ctx.setLineDash([3, 4]);
-      ctx.strokeStyle = rgba(c, on ? 0.55 : 0.2);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      if (st.level === 1 && on) {
-        const lp = o.project(g.x, 0, g.z + g.rad + 0.03);
-        ctx.font = font(11);
-        ctx.textAlign = "center";
-        ctx.fillStyle = t.fgMuted;
-        ctx.fillText(`${g.label} · ${pct(g.share)}`, lp.x, lp.y + 10);
-      }
-    }
-  }
-  const focus = st.intent === null ? undefined : td.byId.get(st.intent);
-  if (st.level === 2 && focus) {
-    ctx.strokeStyle = rgba(t.fgMuted, 0.4);
-    ctx.beginPath();
-    for (let k = 0; k < 48; k += 1) {
-      const p = o.project(focus.x + Math.cos((k / 48) * Math.PI * 2) * 0.2, 0, focus.z + Math.sin((k / 48) * Math.PI * 2) * 0.2);
-      if (k) ctx.lineTo(p.x, p.y);
-      else ctx.moveTo(p.x, p.y);
-    }
-    ctx.closePath();
-    ctx.stroke();
-    prism(o, { item: focus, x: focus.x, z: focus.z, r: 0.05, hgt: COL_H * 0.55, dim: false }, colorOf(focus, live), 0.12, null);
-  }
-  const cols = columns(td, st).map((c) => ({ c, depth: o.project(c.x, 0, c.z).depth })).sort((a, b) => b.depth - a.depth);
-  live.hits = cols.map(({ c }) => {
-    const selected = c.item.id === hover?.col.item.id || (st.level === 1 && c.item.id === st.intent);
-    return prism(o, c, colorOf(c.item, live), c.dim ? 0.18 : 0.95, selected ? t.fg : null);
-  });
-  // Labels, biggest first, skipping overlaps; the hovered column always gets one.
-  const want = st.level === 0 ? live.hits.length : st.level === 1 ? (st.group !== null ? 40 : 14) : live.hits.length;
-  const ranked = live.hits.filter((h) => !h.col.dim).sort((a, b) => b.col.item.share - a.col.item.share);
-  const show = new Set(ranked.slice(0, want).map((h) => h.col.item.id));
-  if (hover) show.add(hover.col.item.id);
-  const boxes: { x1: number; x2: number; y1: number; y2: number }[] = [];
-  ctx.textAlign = "center";
-  ctx.textBaseline = "alphabetic";
-  const isHover = (h: Hit) => h.col.item.id === hover?.col.item.id;
-  for (const h of [...live.hits].sort((a, b) => Number(isHover(b)) - Number(isHover(a)) || b.col.item.share - a.col.item.share)) {
-    if (!show.has(h.col.item.id)) continue;
-    const it = h.col.item;
-    const name = it.label.length > 34 ? `${it.label.slice(0, 33)}…` : it.label;
-    const val = it.kind === "part" ? `${pct(it.ofIntent)} of intent` : pct(it.share);
-    ctx.font = font(12);
-    const tw = Math.max(ctx.measureText(name).width, ctx.measureText(val).width);
-    const box = { x1: h.x - tw / 2 - 2, x2: h.x + tw / 2 + 2, y1: h.y - 32, y2: h.y - 4 };
-    if (!isHover(h) && boxes.some((b) => box.x1 < b.x2 && box.x2 > b.x1 && box.y1 < b.y2 && box.y2 > b.y1)) continue;
-    boxes.push(box);
-    ctx.fillStyle = t.fg;
-    ctx.font = font(12, 600);
-    ctx.fillText(val, h.x, h.y - 20);
-    ctx.fillStyle = t.fgMuted;
-    ctx.font = font(12);
-    ctx.fillText(name, h.x, h.y - 7);
-  }
-}
-
-function tipFor(item: Item, live: Live): TipContent {
-  const { td, state: st } = live;
-  const per = HEIGHT_LABEL[st.height];
-  switch (item.kind) {
-    case "group":
-      return { title: item.label, lines: [`${pct(item.share)} ${per} · #${item.rank} of ${td.groups.length} categories`, `${item.members.length} intents · ${fmtInt(item.n)} needs`, "Click to zoom in"] };
-    case "intent":
-      return { title: item.label, lines: [
-        `${pct(item.share)} ${per} · #${item.rank} of ${td.intents.length}`, `${fmtInt(item.tickets)} tickets · category: ${item.group}`,
-        `Trend: ${pct(item.shareFirst)} in Jan–Mar → ${pct(item.shareLast)} in Jul–Sep`,
-        `FAQ coverage: ${item.meta.coverage === null ? "—" : COVERAGE_LABEL[item.meta.coverage]}`, "Click to zoom into its parts; shift-click to filter"] };
-    case "part":
-      return { title: item.label, lines: [`${pct(item.ofIntent)} of ${item.parent.label}`, `${pct(item.share)} ${per} · ${fmtInt(item.n)} needs`] };
-  }
-}
-
-/** The intent landscape: columns sized by share, coloured by category, placed by meaning. */
 export interface TerrainProps {
   readonly td: TerrainData;
+  readonly series: LandscapeSeries;
   readonly state: TerrainState;
   readonly go: Go;
   readonly goUp: () => void;
@@ -275,82 +503,155 @@ export interface TerrainProps {
   readonly flyKey: number;
 }
 
+/** The demand landscape: a lit surface whose hills are where demand concentrates in meaning space. */
 export function Terrain(props: TerrainProps) {
   const theme = useTheme();
   const [ref, w] = useWidth<HTMLDivElement>(300);
   const tip = useTooltip(ref);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const viewRef = useRef<View>({ ...HOME_VIEW });
+  const glRef = useRef<HTMLCanvasElement>(null);
+  const overlayRef = useRef<HTMLCanvasElement>(null);
+  const viewRef = useRef<View>({ ...HOME_VIEW, pitch: 0.55 });
   const orbitRef = useRef<Orbit | null>(null);
-  const live = useRef<Live>({ ...props, theme, hover: null, hits: [] });
-  Object.assign(live.current, { td: props.td, state: props.state, go: props.go, goUp: props.goUp, onShiftPick: props.onShiftPick, theme });
+  const rafRef = useRef(0);
+  const { series, state } = props;
+  const kern = useMemo(() => kernels(series.intents, SIGMA), [series.intents]);
+  const max = useMemo(() => seriesMax(series, kern), [series, kern]);
+  const reduce = useMemo(prefersReducedMotion, []);
+  const live = useRef<Live | null>(null);
+  if (live.current === null) {
+    live.current = {
+      ...props, theme, kern, max, hover: null, anchors: [], boxes: new Map(),
+      anim: { t: state.month, series, fromWeights: null, fromMax: max, heightMix: 1, colorFrom: state.color, colorMix: 1,
+        power: state.scale === "sqrt" ? 0.5 : 1, backdrop: state.level === 2 ? 1 : 0, labelAlpha: new Map(), labelTarget: new Map(), placement: new Map() },
+    };
+  }
+  const L = live.current;
+  if (L.anim.series !== series) {
+    L.anim.fromWeights = weightsAt(L.anim.series, L.anim.t);
+    L.anim.fromMax = L.max;
+    L.anim.series = series;
+    L.anim.heightMix = 0;
+  }
+  if (L.state.color !== state.color) {
+    L.anim.colorFrom = L.state.color;
+    L.anim.colorMix = 0;
+  }
+  Object.assign(L, { td: props.td, state, go: props.go, goUp: props.goUp, onShiftPick: props.onShiftPick, theme, kern, max });
   const { show: showTip, hide: hideTip } = tip;
 
+  const kickRef = useRef<() => void>(() => undefined);
+
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return undefined;
-    const pick = (e: { readonly clientX: number; readonly clientY: number }): Hit | null => {
-      const r = canvas.getBoundingClientRect();
+    const gl = glRef.current;
+    const ov = overlayRef.current;
+    const ctx = ov?.getContext("2d");
+    const lv0 = live.current;
+    if (!gl || !ov || !ctx || !lv0) return undefined;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    ov.width = Math.round(w * dpr);
+    ov.height = Math.round(HEIGHT * dpr);
+    let S: Scene;
+    try {
+      S = makeScene(gl, w, HEIGHT, lv0.anim.series.intents.length + 64);
+    } catch {
+      ctx.fillStyle = lv0.theme.text;
+      ctx.fillText("WebGL is not available in this browser.", 16, 24);
+      return undefined;
+    }
+    const pick = (e: { readonly clientX: number; readonly clientY: number }): Anchor | null => {
+      const lv = live.current;
+      if (!lv) return null;
+      const r = ov.getBoundingClientRect();
       const px = e.clientX - r.left;
       const py = e.clientY - r.top;
-      let best: Hit | null = null;
-      for (const h of live.current.hits) {
-        if (h.col.dim) continue;
-        if (Math.hypot(h.x - px, h.y - py) <= h.rs + 6 && (best === null || h.depth < best.depth)) best = h;
+      let best: Anchor | null = null;
+      for (const a of lv.anchors) {
+        if (a.dim) continue;
+        const b = lv.boxes.get(a.id);
+        const onBox = b !== undefined && (lv.anim.labelAlpha.get(a.id) ?? 0) > 0.5 && px >= b.x && px <= b.x + b.w && py >= b.y && py <= b.y + b.h;
+        if ((onBox || Math.hypot(a.x - px, a.y - py) <= a.r + 4) && (best === null || a.depth < best.depth)) best = a;
       }
       return best;
     };
-    const orbit = new Orbit(canvas, w, HEIGHT, viewRef.current, (o) => draw(o, live.current), {
+    const kick = () => {
+      if (rafRef.current) return;
+      let last = performance.now();
+      const tick = (now: number) => {
+        const lv = live.current;
+        const orbit = orbitRef.current;
+        if (!lv || !orbit) { rafRef.current = 0; return; }
+        const dt = Math.min(0.1, (now - last) / 1000);
+        last = now;
+        const moving = step(lv, dt, reduce);
+        orbit.paint();
+        rafRef.current = moving ? requestAnimationFrame(tick) : 0;
+      };
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    kickRef.current = kick;
+    S.camera.aspect = w / HEIGHT;
+    S.camera.updateProjectionMatrix();
+    const orbit = new Orbit(ov, w, HEIGHT, viewRef.current, (o) => { const lv = live.current; if (lv) render(o, S, lv, ctx); }, {
       hover: (e) => {
-        const L = live.current;
-        const h = pick(e);
-        if ((h?.col.item.id ?? null) !== (L.hover?.col.item.id ?? null)) { L.hover = h; orbit.paint(); }
-        if (h) showTip(e, tipFor(h.col.item, L));
+        const lv = live.current;
+        if (!lv) return;
+        const a = pick(e);
+        if ((a?.id ?? null) !== (lv.hover?.id ?? null)) { lv.hover = a; kick(); }
+        ov.style.cursor = a ? "pointer" : "grab";
+        if (a) showTip(e, a.tip);
         else hideTip();
       },
-      leave: () => { hideTip(); if (live.current.hover) { live.current.hover = null; orbit.paint(); } },
+      leave: () => { hideTip(); if (live.current?.hover) { live.current.hover = null; kick(); } },
       click: (e) => {
-        const L = live.current;
-        const h = pick(e);
-        if (!h) { if (L.state.level === 1 && L.state.group !== null) L.go(1, null, null); return; }
-        const it = h.col.item;
-        if (it.kind === "intent" && e.shiftKey) L.onShiftPick(it.id);
-        else if (it.kind === "group") L.go(1, it.id, null);
-        else if (it.kind === "intent") L.go(2, it.group, it.id);
+        const lv = live.current;
+        if (!lv) return;
+        const a = pick(e);
+        if (!a) { if (lv.state.level === 1 && lv.state.group !== null) lv.go(1, null, null); return; }
+        if (a.kind === "intent" && a.intent) {
+          if (e.shiftKey) lv.onShiftPick(a.id);
+          else lv.go(2, a.intent.domain, a.id);
+        } else if (a.kind === "group") lv.go(1, a.id, null);
       },
-      dbl: (e) => { if (!pick(e)) live.current.goUp(); },
-      escape: () => live.current.goUp(),
+      dbl: (e) => { if (!pick(e)) live.current?.goUp(); },
+      escape: () => live.current?.goUp(),
       zoomed: () => {
-        const L = live.current;
+        const lv = live.current;
+        if (!lv) return;
         const z = orbit.view.zoom;
-        const st = L.state;
-        if (st.level === 0 && z > 1.55) L.go(1, null, null, false);
-        else if (st.level === 1 && st.group === null && z < 1.1) L.go(0, null, null, false);
+        const st = lv.state;
+        if (st.level === 0 && z > 1.55) lv.go(1, null, null, false);
+        else if (st.level === 1 && st.group === null && z < 1.1) lv.go(0, null, null, false);
         else if (st.level === 1 && z > 3.2) {
-          let best: { d: TerrainIntent; dd: number } | null = null;
-          for (const h of L.hits) {
-            if (h.col.dim || h.col.item.kind !== "intent") continue;
-            const dd = Math.hypot(h.x - orbit.width / 2, h.y - HEIGHT * 0.5);
-            if (best === null || dd < best.dd) best = { d: h.col.item, dd };
+          let best: { d: SeriesIntent; dd: number } | null = null;
+          for (const a of lv.anchors) {
+            if (!a.intent) continue;
+            const dd = Math.hypot(a.x - orbit.width / 2, a.y - HEIGHT * 0.5);
+            if (best === null || dd < best.dd) best = { d: a.intent, dd };
           }
-          if (best) { orbit.view.tx = best.d.x; orbit.view.tz = best.d.z; L.go(2, best.d.group, best.d.id, false); }
-        } else if (st.level === 2 && z < 2.2) L.go(1, st.group, null, false);
+          if (best) { orbit.view.tx = best.d.x; orbit.view.tz = best.d.z; lv.go(2, best.d.domain, best.d.id, false); }
+        } else if (st.level === 2 && z < 2.2) lv.go(1, st.group, null, false);
+        kick();
       },
-    }, prefersReducedMotion());
+    }, reduce);
     orbitRef.current = orbit;
-    return () => { orbit.destroy(); orbitRef.current = null; };
-  }, [w, showTip, hideTip]);
+    kick();
+    return () => { cancelAnimationFrame(rafRef.current); rafRef.current = 0; orbit.destroy(); orbitRef.current = null; disposeScene(S); };
+  }, [w, showTip, hideTip, reduce]);
 
-  useEffect(() => { orbitRef.current?.paint(); }, [props.td, props.state, theme]);
+  // Any change of data, settings or theme restarts the loop; it stops itself once everything settles.
+  useEffect(() => { kickRef.current(); });
   useEffect(() => {
-    if (props.flyKey > 0) orbitRef.current?.flyTo(targetView(live.current.td, live.current.state));
+    const lv = live.current;
+    if (props.flyKey > 0 && lv) { orbitRef.current?.flyTo(targetView(lv.td, lv.state)); kickRef.current(); }
   }, [props.flyKey]);
 
   return (
-    <div className="chart terrain" ref={ref}>
-      <canvas ref={canvasRef} tabIndex={0} style={{ width: "100%", height: HEIGHT, display: "block", touchAction: "none", cursor: "grab" }}
+    <div className="chart terrain" ref={ref} style={{ height: HEIGHT }}>
+      <canvas ref={glRef} style={{ position: "absolute", inset: 0, width: "100%", height: HEIGHT, display: "block" }} />
+      <canvas ref={overlayRef} tabIndex={0} style={{ position: "absolute", inset: 0, width: "100%", height: HEIGHT, display: "block", touchAction: "none", cursor: "grab" }}
         aria-label="Demand landscape. Drag to rotate, shift-drag to pan, scroll or plus and minus to zoom, Escape to zoom out a level." />
       {tip.node}
     </div>
   );
 }
+

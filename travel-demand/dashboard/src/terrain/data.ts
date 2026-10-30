@@ -143,3 +143,47 @@ export function parts(d: TerrainIntent, basis: PartBasis): Part[] {
   const rest = ps.slice(PART_TOP);
   return [...ps.slice(0, PART_TOP), { label: `${rest.length} other`, n: rest.reduce((s, p) => s + p.n, 0), other: true, channel: null }];
 }
+
+/** Static facts about one intent on the landscape. */
+export interface SeriesIntent {
+  readonly id: string;
+  readonly label: string;
+  readonly meta: IntentRecord;
+  readonly x: number;
+  readonly z: number;
+  readonly domain: string;
+  readonly domainIndex: number;
+  readonly channel: Channel | null;
+  readonly trend: number;
+}
+
+/**
+ * Each intent's share of needs per frame, for smooth animation: frame 0 is all months, frame i is month i.
+ * Shares are of the needs matching the size basis, so every frame sums to 1.
+ */
+export interface LandscapeSeries {
+  readonly height: HeightBasis;
+  readonly intents: readonly SeriesIntent[];
+  readonly frames: readonly Float64Array[];
+  readonly months: readonly Month[];
+}
+
+export function landscapeSeries(m: Model, height: HeightBasis): LandscapeSeries {
+  const st: TerrainState = { ...INITIAL_TERRAIN, height };
+  const all = terrainData(m, st);
+  const idx = new Map(all.intents.map((d, i) => [d.id, i]));
+  const domains = [...m.index.domains];
+  const intents: SeriesIntent[] = all.intents.map((d) => ({
+    id: d.id, label: d.label, meta: d.meta, x: d.x, z: d.z, domain: d.group, domainIndex: Math.max(0, domains.indexOf(d.group)), channel: d.channel, trend: d.trend,
+  }));
+  const frames = [0, ...m.index.months.map((_, i) => i + 1)].map((month) => {
+    const td = month === 0 ? all : terrainData(m, { ...st, month });
+    const w = new Float64Array(intents.length);
+    for (const d of td.intents) {
+      const i = idx.get(d.id);
+      if (i !== undefined) w[i] = d.share;
+    }
+    return w;
+  });
+  return { height, intents, frames, months: m.index.months };
+}

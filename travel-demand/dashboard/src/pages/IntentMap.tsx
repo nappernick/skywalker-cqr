@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { IntentRecord } from "../domain/types";
 import { buildGraph, CUT_RANGE, DEFAULT_CUT, type LinkBasis } from "../domain/relations";
-import { HEIGHT_LABEL, INITIAL_TERRAIN, terrainData, type ColorBasis, type HeightBasis, type HeightScale, type Level, type PartBasis, type TerrainData, type TerrainState } from "../terrain/data";
+import { HEIGHT_LABEL, INITIAL_TERRAIN, landscapeSeries, terrainData, type ColorBasis, type HeightBasis, type HeightScale, type Level, type PartBasis, type TerrainData, type TerrainState } from "../terrain/data";
 import { Terrain } from "../terrain/Terrain";
 import { dec2, fmtMonth, pct } from "../ui/format";
 import { prefersReducedMotion } from "../ui/hooks";
@@ -84,6 +84,7 @@ export function IntentMap({ model: m, filters }: PageProps) {
   const [metric, setMetric] = useState<MatrixMetric>("cosine");
 
   const td = useMemo(() => terrainData(m, st), [m, st]);
+  const series = useMemo(() => landscapeSeries(m, st.height), [m, st.height]);
   const go = useCallback((level: Level, group: string | null, intent: string | null, fly = true) => {
     setSt((s) => ({ ...s, level, group, intent }));
     if (intent !== null) setSelected(intent);
@@ -145,7 +146,7 @@ export function IntentMap({ model: m, filters }: PageProps) {
           <button type="button" className="btn" aria-pressed={playing} onClick={() => setPlaying((p) => !p)}>Play months</button>
         </div>
         <div className="split">
-          {td.intents.length ? <Terrain td={td} state={st} go={go} goUp={goUp} onShiftPick={(id) => filters.toggle("intent", id)} flyKey={flyKey} /> : <div className="empty">No needs match these filters</div>}
+          {td.intents.length ? <Terrain td={td} series={series} state={st} go={go} goUp={goUp} onShiftPick={(id) => filters.toggle("intent", id)} flyKey={flyKey} /> : <div className="empty">No needs match these filters</div>}
           <SidePanel td={td} st={st} go={go} />
         </div>
         <p className="sub">Shares count needs (ticket–intent rows), so each level sums to 100%. Trend colour compares an intent's share in July–September with January–March. Placement is a UMAP layout of 63 intents from BAAI/bge-small-en-v1.5 sentence embeddings; read neighbourhoods, not exact distances.</p>
