@@ -77,15 +77,14 @@ Every intent also has a **`best_channel`**: what would best replace the human fo
 
 ## Run
 
+From the repository root, `bun run pipeline` runs every step in order (`pipeline.ts`; `--from <step>` resumes). Steps can also run alone:
+
 ```bash
 python3 scripts/build.py data/tickets.xlsx    # -> data/travel.sqlite
+python3 scripts/analyze.py                    # -> reports/00-10
 ```
 
-```bash
-python3 scripts/analyze.py                    # -> reports/*.csv
-```
-
-Requires `pandas` and `openpyxl`. Findings are in [`FINDINGS.md`](FINDINGS.md).
+Python dependencies are pinned in `requirements.txt`. Findings are in [`FINDINGS.md`](FINDINGS.md).
 
 ## FAQ coverage
 
@@ -103,11 +102,27 @@ python3 scripts/faq_coverage.py
 
 ## Dashboard
 
-`dashboard/index.html` and `dashboard/app.js` are the page of the private **Travel Support Demand** dashboard artifact. It reads four de-identified JSON files from `scripts/export_dashboard.py` (`reports/dashboard/`). Those files hold no titles, ticket IDs, aliases or requester keys. Cross-ticket journeys ship only as an aggregate. Every filter is applied in the browser.
+`dashboard/` is a React + Vite + TypeScript app (`bun run dev` from the root). It reads the de-identified JSON that `scripts/export_dashboard.py` writes to `reports/dashboard/` (Vite serves that folder directly), validates every record into literal-union types on load, and filters entirely in the browser. Filters live in the URL, so any view can be linked.
+
+- **Pages:** Overview, Intent map (3D), Answerability census, Answerable, FAQ coverage, All intents, Time & place, Bundles & journeys, Agents & routing. Each opens with a numbered section and a headline computed from the filtered data.
+- **3D intent map:** columns sized by share of needs, coloured by category, placed by meaning (see below). Scroll zooms from categories to intents to the parts of one intent; drag rotates, shift-drag pans, Escape zooms out. A month slider and playback animate it through time.
+- **Themes:** four page themes (#33, #43, #44, #60) from the v5 palette, switched in the header and remembered per browser. `src/ui/theme.ts` is the single source of colour for CSS, SVG and canvas. Type is Rubik, bundled.
+- **Tests:** `test/domain.test.ts` checks the TypeScript model reproduces the Python pipeline's headline counts exactly.
 
 ```bash
 python3 scripts/export_dashboard.py           # -> reports/dashboard/*.json
 ```
+
+## Answerability census
+
+Every demand ticket rated for whether factual content alone would resolve it, judged by logic rather than by today's FAQs. Tickets with identical rater-visible metadata form one signature (4,256 cover all 8,012). Two blind raters labelled each signature and a third adjudicated disagreements; the rubric is `config/census_rubric.md`.
+
+```bash
+python3 scripts/census.py prepare             # signatures + rating batches -> data/census/
+python3 scripts/census.py report              # data/census/ratings.csv -> reports/14_*.csv, reports/dashboard/census.json
+```
+
+Result: 22.9% answerable by content alone (20.2%–24.5% between strict and loose rater agreement), 14.9% more need an answer then an action; raters agreed on 85% of signatures (Cohen's kappa 0.80).
 
 ## Intent map (semantic layout)
 
