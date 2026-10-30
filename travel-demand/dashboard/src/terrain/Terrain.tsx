@@ -12,7 +12,7 @@ import { HOME_VIEW, Orbit, type FlyTarget, type View } from "./orbit";
 
 const HEIGHT = 580;
 /** World height of the tallest hill. */
-const TOP = 0.5;
+const TOP = 0.78;
 const CONTOURS = 9;
 const SIGMA = 0.1;
 const LEVEL_ZOOM: Readonly<Record<Level, number>> = { 0: 1, 1: 1.35, 2: 3.4 };
@@ -103,6 +103,8 @@ interface Scene {
 }
 
 const MAX_ORBS = PART_TOP + 1;
+/** Scratch buffer for the colour blur. */
+const blurBuf = new Float32Array(GRID * GRID * 3);
 /** Capacity of the reused contour-line buffer, in floats. */
 const LINE_FLOATS = 6 * 60000;
 
@@ -113,9 +115,10 @@ function makeScene(canvas: HTMLCanvasElement, w: number, h: number, nIntents: nu
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(32, w / h, 0.05, 50);
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8a8a, 1.6));
-  const sun = new THREE.DirectionalLight(0xffffff, 1.5);
-  sun.position.set(-2.2, 3.2, 1.6);
+  // Soft sky fill plus a low raking sun, so slopes read as relief.
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x6f6f6f, 0.95));
+  const sun = new THREE.DirectionalLight(0xffffff, 2.4);
+  sun.position.set(-2.6, 1.9, 1.2);
   scene.add(sun);
 
   const geo = new THREE.BufferGeometry();
@@ -248,35 +251,56 @@ function render(o: Orbit, S: Scene, L: Live, overlay: CanvasRenderingContext2D):
   const posArr = pos.array;
   const colArr = col.array;
   const fadeTo = 1 - A.backdrop * 0.7;
-  // Dominant group and its strength at cell k: [index, strength], written into a reused pair.
-  const dom = [0, 0];
-  const dominant = (groups: readonly Float64Array[], k: number, v: number) => {
-    let best = 0;
-    let bi = -1;
-    for (let gi = 0; gi < groups.length; gi += 1) { const x = groups[gi]?.[k] ?? 0; if (x > best) { best = x; bi = gi; } }
-    const share = v > 0 ? best / v : 0;
-    dom[0] = bi;
-    dom[1] = Math.max(0, Math.min(1, (share - 0.34) / 0.3)) * Math.min(1, v / vmax / 0.06) * fadeTo;
+  // Colour at a point is the blend of group colours weighted by their share there (sharpened, so the leading
+  // group dominates but boundaries fade rather than snap), faded into the ground at the foothills.
+  const mixed = [0, 0, 0];
+  const blend = (groups: readonly Float64Array[], palette: readonly (readonly [number, number, number])[], k: number, v: number) => {
+    let sw = 0; let r = 0; let g = 0; let b = 0; let top = 0;
+    for (let gi = 0; gi < groups.length; gi += 1) {
+      const share = v > 0 ? (groups[gi]?.[k] ?? 0) / v : 0;
+      if (share <= 0) continue;
+      top = Math.max(top, share);
+      const wgt = share * share * share;
+      const c = palette[gi];
+      if (!c) continue;
+      sw += wgt; r += c[0] * wgt; g += c[1] * wgt; b += c[2] * wgt;
+    }
+    const strength = sw > 0 ? Math.max(0, Math.min(1, (top - 0.25) / 0.35)) * Math.min(1, (v / vmax / 0.05) ** 0.8) * fadeTo : 0;
+    mixed[0] = gr + ((sw ? r / sw : gr) - gr) * strength;
+    mixed[1] = gg + ((sw ? g / sw : gg) - gg) * strength;
+    mixed[2] = gb + ((sw ? b / sw : gb) - gb) * strength;
   };
   for (let k = 0; k < GRID * GRID; k += 1) {
     const v = fNew.values[k] ?? 0;
     if (posArr instanceof Float32Array) posArr[k * 3 + 1] = heightOf(v);
-    dominant(fNew.groups, k, v);
-    const cn = cNew[dom[0] ?? -1];
-    const sn = dom[1] ?? 0;
-    let r = cn ? gr + (cn[0] - gr) * sn : gr;
-    let g = cn ? gg + (cn[1] - gg) * sn : gg;
-    let bl = cn ? gb + (cn[2] - gb) * sn : gb;
+    blend(fNew.groups, cNew, k, v);
+    let r = mixed[0] ?? gr;
+    let g = mixed[1] ?? gg;
+    let bl = mixed[2] ?? gb;
     if (fOld && ck < 1) {
-      dominant(fOld.groups, k, v);
-      const co = cOld[dom[0] ?? -1];
-      const so = dom[1] ?? 0;
-      const ro = co ? gr + (co[0] - gr) * so : gr;
-      const go2 = co ? gg + (co[1] - gg) * so : gg;
-      const bo = co ? gb + (co[2] - gb) * so : gb;
+      blend(fOld.groups, cOld, k, v);
+      const ro = mixed[0] ?? gr;
+      const go2 = mixed[1] ?? gg;
+      const bo = mixed[2] ?? gb;
       r = ro + (r - ro) * ck; g = go2 + (g - go2) * ck; bl = bo + (bl - bo) * ck;
     }
     if (colArr instanceof Float32Array) { colArr[k * 3] = r; colArr[k * 3 + 1] = g; colArr[k * 3 + 2] = bl; }
+  }
+  // Two passes of a separable box blur on the colours, so boundaries between groups are soft, not sawtoothed.
+  if (colArr instanceof Float32Array) {
+    for (let pass = 0; pass < 2; pass += 1) {
+      for (const horizontal of [true, false]) {
+        blurBuf.set(colArr);
+        for (let j = 0; j < GRID; j += 1) {
+          for (let i = 0; i < GRID; i += 1) {
+            const k = j * GRID + i;
+            const a = horizontal ? (i > 0 ? k - 1 : k) : (j > 0 ? k - GRID : k);
+            const b = horizontal ? (i < GRID - 1 ? k + 1 : k) : (j < GRID - 1 ? k + GRID : k);
+            for (let ch = 0; ch < 3; ch += 1) colArr[k * 3 + ch] = ((blurBuf[a * 3 + ch] ?? 0) + (blurBuf[k * 3 + ch] ?? 0) * 2 + (blurBuf[b * 3 + ch] ?? 0)) / 4;
+          }
+        }
+      }
+    }
   }
   pos.needsUpdate = true;
   col.needsUpdate = true;
@@ -310,6 +334,8 @@ function render(o: Orbit, S: Scene, L: Live, overlay: CanvasRenderingContext2D):
     const dim = st.group !== null && d.domain !== st.group;
     S.dots.setColorAt(n, tmp.set(gNew.color(gNew.groupOf[n] ?? 0)).lerp(groundCol, dim ? 0.75 : 0));
   });
+  // Only the instances in use are drawn; unused slots would otherwise render as unit spheres.
+  S.dots.count = Math.min(ints.length, S.dots.instanceMatrix.count);
   S.dots.instanceMatrix.needsUpdate = true;
   if (S.dots.instanceColor) S.dots.instanceColor.needsUpdate = true;
 
@@ -333,6 +359,7 @@ function render(o: Orbit, S: Scene, L: Live, overlay: CanvasRenderingContext2D):
     } else m4.makeScale(0, 0, 0);
     S.orbs.setMatrixAt(i, m4);
   }
+  S.orbs.count = partAt.length;
   S.orbs.instanceMatrix.needsUpdate = true;
   if (S.orbs.instanceColor) S.orbs.instanceColor.needsUpdate = true;
 
