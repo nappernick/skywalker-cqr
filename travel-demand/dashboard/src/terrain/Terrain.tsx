@@ -4,18 +4,20 @@ import * as THREE from "three";
 import { CHANNELS } from "../domain/types";
 import { COVERAGE_LABEL, fmtInt, pct } from "../ui/format";
 import { prefersReducedMotion, useWidth } from "../ui/hooks";
-import { channelColor, coverageColor, FONT_FAMILY, seriesColor, useTheme, type Theme } from "../ui/theme";
+import { channelColor, coverageColor, FONT_FAMILY, useTheme, type Theme } from "../ui/theme";
 import { useTooltip, type TipContent } from "../ui/Tooltip";
-import { HEIGHT_LABEL, PART_TOP, parts, type ColorBasis, type LandscapeSeries, type Level, type SeriesIntent, type TerrainData, type TerrainState } from "./data";
+import { HEIGHT_LABEL, PART_TOP, parts, type ColorBasis, type HeightScale, type LandscapeSeries, type Level, type SeriesIntent, type TerrainData, type TerrainState } from "./data";
 import { field, writeContours, GRID, gridToWorld, kernels, maxOf, sample, type Kernels } from "./landscape";
 import { HOME_VIEW, Orbit, type FlyTarget, type View } from "./orbit";
 
 const HEIGHT = 580;
 /** World height of the tallest hill. */
-const TOP = 0.78;
+const TOP = 1.09; // 0.78 raised 40%
 const CONTOURS = 9;
 const SIGMA = 0.1;
 const LEVEL_ZOOM: Readonly<Record<Level, number>> = { 0: 1, 1: 1.35, 2: 3.4 };
+/** Height exponent per scale option: roots lift the small hills, powers exaggerate the peaks. */
+const POWER: Readonly<Record<HeightScale, number>> = { sqrt: 0.5, linear: 1, squared: 2, cubed: 3, fifth: 5 };
 const TWEEN_MS = 650;
 const MONTHS_PER_SECOND = 1 / 1.05;
 
@@ -32,19 +34,21 @@ interface Grouping {
 function grouping(series: LandscapeSeries, mode: ColorBasis, t: Theme): Grouping {
   const ints = series.intents;
   switch (mode) {
-    case "group":
-      return { groupOf: Int32Array.from(ints, (d) => d.domainIndex), n: Math.max(1, ...ints.map((d) => d.domainIndex + 1)), color: (g) => seriesColor(t, g) };
+    case "group": {
+      const inks = [t.text, t.text2, t.rule, t.flag, t.block] as const;
+      return { groupOf: Int32Array.from(ints, (d) => d.domainIndex), n: Math.max(1, ...ints.map((d) => d.domainIndex + 1)), color: (g) => inks[g % inks.length] ?? t.text };
+    }
     case "coverage": {
       const cov = ["full", "partial", "none"] as const;
       return { groupOf: Int32Array.from(ints, (d) => { const i = cov.findIndex((c) => c === d.meta.coverage); return i < 0 ? 3 : i; }), n: 4,
-        color: (g) => { const c = cov[g]; return c === undefined ? t.muted : coverageColor(t, c); } };
+        color: (g) => { const c = cov[g]; return c === undefined ? t.flag : coverageColor(t, c); } };
     }
     case "channel":
       return { groupOf: Int32Array.from(ints, (d) => (d.channel === null ? CHANNELS.length : CHANNELS.indexOf(d.channel))), n: CHANNELS.length + 1,
-        color: (g) => { const c = CHANNELS[g]; return c === undefined ? t.muted : channelColor(t, c); } };
+        color: (g) => { const c = CHANNELS[g]; return c === undefined ? t.flag : channelColor(t, c); } };
     case "trend":
       return { groupOf: Int32Array.from(ints, (d) => (d.trend > 0.35 ? 0 : d.trend < -0.35 ? 2 : 1)), n: 3,
-        color: (g) => (g === 0 ? seriesColor(t, 0) : g === 2 ? seriesColor(t, 1) : t.muted) };
+        color: (g) => (g === 0 ? t.text : g === 2 ? t.text2 : t.flag) };
   }
 }
 
@@ -63,6 +67,8 @@ interface Anim {
   power: number;
   /** Behind an intent's parts the landscape fades toward the ground (0..1). */
   backdrop: number;
+  /** Intent whose parts the landscape morphs into; kept while morphing back out. */
+  focusId: string | null;
   labelAlpha: Map<string, number>;
   labelTarget: Map<string, number>;
   /** Sticky label placements, so labels do not hop between frames. */
@@ -96,14 +102,16 @@ interface Scene {
   readonly renderer: THREE.WebGLRenderer;
   readonly scene: THREE.Scene;
   readonly camera: THREE.PerspectiveCamera;
-  readonly surface: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
-  readonly ground: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
+  readonly surface: THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
+  readonly ground: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshStandardMaterial>;
   readonly lines: THREE.LineSegments<THREE.BufferGeometry, THREE.LineBasicMaterial>;
   readonly dots: THREE.InstancedMesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>;
   readonly orbs: THREE.InstancedMesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>;
 }
 
 const MAX_ORBS = PART_TOP + 1;
+/** Scratch buffer for the colour blur. */
+const blurBuf = new Float32Array(GRID * GRID * 3);
 /** Capacity of the reused contour-line buffer, in floats. */
 const LINE_FLOATS = 6 * 60000;
 
@@ -114,6 +122,11 @@ function makeScene(canvas: HTMLCanvasElement, w: number, h: number, nIntents: nu
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(32, w / h, 0.05, 50);
+  // Soft sky fill plus a low raking sun, so slopes read as relief.
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x6f6f6f, 0.95));
+  const sun = new THREE.DirectionalLight(0xffffff, 2.4);
+  sun.position.set(-2.6, 1.9, 1.2);
+  scene.add(sun);
 
   const geo = new THREE.BufferGeometry();
   const pos = new Float32Array(GRID * GRID * 3);
@@ -134,10 +147,10 @@ function makeScene(canvas: HTMLCanvasElement, w: number, h: number, nIntents: nu
   geo.setIndex(index);
   geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
   geo.setAttribute("color", new THREE.BufferAttribute(new Float32Array(GRID * GRID * 3), 3));
-  const surface = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true }));
+  const surface = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, metalness: 0 }));
   scene.add(surface);
 
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshBasicMaterial());
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshStandardMaterial({ roughness: 1, metalness: 0 }));
   ground.rotation.x = -Math.PI / 2;
   ground.position.y = -0.0015;
   scene.add(ground);
@@ -213,9 +226,16 @@ interface Live {
 }
 
 /** Label offsets tried in order (box centre relative to the anchor), so crowded labels move rather than overlap. */
-const SPOTS: readonly (readonly [number, number])[] = [[0, -34], [-70, -46], [70, -46], [0, -70], [-110, -18], [110, -18], [-80, -88], [80, -88], [0, -106]];
+const SPOTS: readonly (readonly [number, number])[] = [[0, -40], [-90, -54], [90, -54], [0, -84], [-140, -22], [140, -22], [-100, -104], [100, -104], [0, -128]];
 
 const rgb = (c: THREE.Color) => [c.r, c.g, c.b] as const;
+/** Reused per-vertex surface value, normalised so 1 is the tallest peak. */
+const combBuf = new Float64Array(GRID * GRID);
+/** Ring of an intent's parts around its peak (world units). */
+const PART_RING = 0.21;
+const PART_SIGMA = 0.05;
+/** Part hills peak at this fraction of the full landscape height, so they stay in view when zoomed in. */
+const PART_HEIGHT = 0.14;
 
 function render(o: Orbit, S: Scene, L: Live, overlay: CanvasRenderingContext2D): void {
   const { theme: t, state: st, anim: A, kern } = L;
@@ -230,16 +250,33 @@ function render(o: Orbit, S: Scene, L: Live, overlay: CanvasRenderingContext2D):
     w = w.map((v, n) => (from[n] ?? 0) * (1 - hk) + v * hk);
   }
   const vmax = A.fromWeights && hk < 1 ? A.fromMax * (1 - hk) + L.max * hk : L.max;
-  const heightOf = (v: number) => TOP * Math.min(1, Math.max(0, v / vmax)) ** A.power;
+  const heightN = (n: number) => TOP * Math.min(1, Math.max(0, n)) ** A.power;
   const gNew = grouping(A.series, st.color, t);
   const ck = ease(A.colorMix);
   const gOld = ck < 1 ? grouping(A.series, A.colorFrom, t) : null;
   const fNew = field(kern, w, gNew.groupOf, gNew.n);
   const fOld = gOld ? field(kern, w, gOld.groupOf, gOld.n) : null;
 
+  // Zooming into an intent morphs the landscape into its parts: one small hill per part, ringed round the
+  // intent's peak, sized by its share of the intent. The morph runs on the same clock as the camera.
+  if (st.level === 2 && st.intent !== null) A.focusId = st.intent;
+  const pf = A.backdrop > 0.001 && A.focusId !== null ? L.td.byId.get(A.focusId) : undefined;
+  const pb = pf ? ease(A.backdrop) : 0;
+  const pps = pf ? parts(pf, st.part) : [];
+  const ppts = pps.map((_, i) => {
+    const a = (i / pps.length) * Math.PI * 2 - Math.PI / 2;
+    const rr = PART_RING * (st.part === "month" ? 1 : 0.55 + 0.45 * Math.sqrt(i / pps.length));
+    return { x: (pf?.x ?? 0) + Math.cos(a) * rr, z: (pf?.z ?? 0) + Math.sin(a) * rr };
+  });
+  const pField = pf && pps.length ? field(kernels(ppts, PART_SIGMA), Float64Array.from(pps, (p) => Math.sqrt(p.n)), Int32Array.from(pps, (_, i) => i), pps.length) : null;
+  const pMax = pField ? Math.max(1e-9, maxOf(pField.values)) : 1;
+  const inks = [t.text, t.text2, t.rule, t.flag, t.block] as const;
+  const cPart = pps.map((p, i) => rgb(new THREE.Color(st.part === "channel" && p.channel !== null ? channelColor(t, p.channel) : (inks[i % inks.length] ?? t.text))));
+  for (let k = 0; k < GRID * GRID; k += 1) combBuf[k] = ((fNew.values[k] ?? 0) / vmax) * (1 - pb) + (pField ? (PART_HEIGHT * (pField.values[k] ?? 0)) / pMax : 0) * pb;
+
   // Surface heights and colours. Colour is the dominant group's, faded into the ground at the foothills and
   // where groups mix, so colour always means "most of the demand here is this".
-  const groundCol = new THREE.Color(t.block);
+  const groundCol = new THREE.Color(t.frame);
   const [gr, gg, gb] = rgb(groundCol);
   const cNew = Array.from({ length: gNew.n }, (_, g) => rgb(new THREE.Color(gNew.color(g))));
   const cOld = gOld ? Array.from({ length: gOld.n }, (_, g) => rgb(new THREE.Color(gOld.color(g)))) : [];
@@ -247,56 +284,86 @@ function render(o: Orbit, S: Scene, L: Live, overlay: CanvasRenderingContext2D):
   const col = S.surface.geometry.getAttribute("color");
   const posArr = pos.array;
   const colArr = col.array;
-  // Each point is exactly one palette colour: its dominant group's, or the panel colour where demand is thin.
-  // No blending between groups, so every colour on the map is a page colour (shading only lightens or darkens it).
+  const fadeTo = 1 - A.backdrop * 0.7;
+  // Colour at a point is the blend of group colours weighted by their share there (sharpened, so the leading
+  // group dominates but boundaries fade rather than snap), faded into the ground at the foothills.
   const mixed = [0, 0, 0];
-  const blend = (groups: readonly Float64Array[], palette: readonly (readonly [number, number, number])[], k: number, v: number) => {
-    let best = 0;
-    let bi = -1;
-    for (let gi = 0; gi < groups.length; gi += 1) { const x = groups[gi]?.[k] ?? 0; if (x > best) { best = x; bi = gi; } }
-    const c = v / vmax >= 0.035 ? palette[bi] : undefined;
-    mixed[0] = c ? c[0] : gr;
-    mixed[1] = c ? c[1] : gg;
-    mixed[2] = c ? c[2] : gb;
+  const blend = (groups: readonly Float64Array[], palette: readonly (readonly [number, number, number])[], k: number, v: number, norm: number, fade: number) => {
+    let sw = 0; let r = 0; let g = 0; let b = 0; let top = 0;
+    for (let gi = 0; gi < groups.length; gi += 1) {
+      const share = v > 0 ? (groups[gi]?.[k] ?? 0) / v : 0;
+      if (share <= 0) continue;
+      top = Math.max(top, share);
+      const wgt = share * share * share;
+      const c = palette[gi];
+      if (!c) continue;
+      sw += wgt; r += c[0] * wgt; g += c[1] * wgt; b += c[2] * wgt;
+    }
+    const strength = sw > 0 ? Math.max(0, Math.min(1, (top - 0.25) / 0.35)) * Math.min(1, (norm / 0.05) ** 0.8) * fade : 0;
+    mixed[0] = gr + ((sw ? r / sw : gr) - gr) * strength;
+    mixed[1] = gg + ((sw ? g / sw : gg) - gg) * strength;
+    mixed[2] = gb + ((sw ? b / sw : gb) - gb) * strength;
   };
   for (let k = 0; k < GRID * GRID; k += 1) {
     const v = fNew.values[k] ?? 0;
-    if (posArr instanceof Float32Array) posArr[k * 3 + 1] = heightOf(v);
-    blend(fNew.groups, cNew, k, v);
+    if (posArr instanceof Float32Array) posArr[k * 3 + 1] = heightN(combBuf[k] ?? 0);
+    blend(fNew.groups, cNew, k, v, v / vmax, fadeTo);
     let r = mixed[0] ?? gr;
     let g = mixed[1] ?? gg;
     let bl = mixed[2] ?? gb;
     if (fOld && ck < 1) {
-      blend(fOld.groups, cOld, k, v);
+      blend(fOld.groups, cOld, k, v, v / vmax, fadeTo);
       const ro = mixed[0] ?? gr;
       const go2 = mixed[1] ?? gg;
       const bo = mixed[2] ?? gb;
       r = ro + (r - ro) * ck; g = go2 + (g - go2) * ck; bl = bo + (bl - bo) * ck;
     }
+    if (pField && pb > 0) {
+      const vp = pField.values[k] ?? 0;
+      blend(pField.groups, cPart, k, vp, vp / pMax, 1);
+      r += ((mixed[0] ?? gr) - r) * pb; g += ((mixed[1] ?? gg) - g) * pb; bl += ((mixed[2] ?? gb) - bl) * pb;
+    }
     if (colArr instanceof Float32Array) { colArr[k * 3] = r; colArr[k * 3 + 1] = g; colArr[k * 3 + 2] = bl; }
+  }
+  // Two passes of a separable box blur on the colours, so boundaries between groups are soft, not sawtoothed.
+  if (colArr instanceof Float32Array) {
+    for (let pass = 0; pass < 2; pass += 1) {
+      for (const horizontal of [true, false]) {
+        blurBuf.set(colArr);
+        for (let j = 0; j < GRID; j += 1) {
+          for (let i = 0; i < GRID; i += 1) {
+            const k = j * GRID + i;
+            const a = horizontal ? (i > 0 ? k - 1 : k) : (j > 0 ? k - GRID : k);
+            const b = horizontal ? (i < GRID - 1 ? k + 1 : k) : (j < GRID - 1 ? k + GRID : k);
+            for (let ch = 0; ch < 3; ch += 1) colArr[k * 3 + ch] = ((blurBuf[a * 3 + ch] ?? 0) + (blurBuf[k * 3 + ch] ?? 0) * 2 + (blurBuf[b * 3 + ch] ?? 0)) / 4;
+          }
+        }
+      }
+    }
   }
   pos.needsUpdate = true;
   col.needsUpdate = true;
+  S.surface.geometry.computeVertexNormals();
   S.surface.geometry.computeBoundingSphere();
   S.ground.material.color.copy(groundCol);
 
   // Contour rings, lifted a hair above the surface.
-  const thresholds = Array.from({ length: CONTOURS }, (_, k) => vmax * ((k + 1) / (CONTOURS + 1)) ** (1 / A.power));
+  const thresholds = Array.from({ length: CONTOURS }, (_, k) => ((k + 1) / (CONTOURS + 1)) ** (1 / A.power));
   const lineAttr = S.lines.geometry.getAttribute("position");
   if (lineAttr.array instanceof Float32Array) {
-    const n = writeContours(fNew.values, thresholds, heightOf, 0.0025, lineAttr.array);
+    const n = writeContours(combBuf, thresholds, heightN, 0.0025, lineAttr.array);
     S.lines.geometry.setDrawRange(0, n / 3);
     lineAttr.needsUpdate = true;
   }
   S.lines.material.color.set(t.text);
-  S.lines.material.opacity = 0.32 * (1 - A.backdrop * 0.6);
+  S.lines.material.opacity = 0.32;
 
   // Intent markers (level 1+) and part spheres (level 2).
   const ints = A.series.intents;
   const maxW = Math.max(1e-9, ...w);
   const m4 = new THREE.Matrix4();
   const tmp = new THREE.Color();
-  const surfaceY = (x: number, z: number) => heightOf(sample(fNew.values, x, z));
+  const surfaceY = (x: number, z: number) => heightN(sample(combBuf, x, z));
   ints.forEach((d, n) => {
     const v = w[n] ?? 0;
     const show = st.level >= 1 && v > 0;
@@ -315,12 +382,9 @@ function render(o: Orbit, S: Scene, L: Live, overlay: CanvasRenderingContext2D):
   const ps = focus ? parts(focus, st.part) : [];
   const pmax = Math.max(1, ...ps.map((p) => p.n));
   const partAt = ps.map((p, i) => {
-    const a = (i / ps.length) * Math.PI * 2 - Math.PI / 2;
-    const rr = 0.2 * (st.part === "month" ? 1 : 0.6 + 0.4 * Math.sqrt(i / ps.length + 0.02));
-    const x = (focus?.x ?? 0) + Math.cos(a) * rr;
-    const z = (focus?.z ?? 0) + Math.sin(a) * rr;
+    const pt = ppts[i] ?? { x: focus?.x ?? 0, z: focus?.z ?? 0 };
     const r = 0.012 + 0.03 * Math.sqrt(p.n / pmax);
-    return { p, x, z, r, y: Math.max(surfaceY(x, z), focus ? surfaceY(focus.x, focus.z) * 0.6 : 0) + r + 0.03 };
+    return { p, x: pt.x, z: pt.z, r, y: surfaceY(pt.x, pt.z) };
   });
   const parentColor = focus ? gNew.color(gNew.groupOf[ints.findIndex((d) => d.id === focus.id)] ?? 0) : t.muted;
   for (let i = 0; i < MAX_ORBS; i += 1) {
@@ -377,7 +441,8 @@ function render(o: Orbit, S: Scene, L: Live, overlay: CanvasRenderingContext2D):
   }
   for (const it of partAt) {
     if (!focus) break;
-    const p = toScreen(it.x, it.y + it.r, it.z);
+    if (it.p.n / focus.n < 0.01) continue; // too small to label
+    const p = toScreen(it.x, it.y, it.z);
     anchors.push({ kind: "part", id: `${focus.id}:${it.p.label}`, value: pct(it.p.n / focus.n), name: it.p.label, x: p.x, y: p.y, r: 12, depth: p.depth,
       weight: 1 + it.p.n / focus.n, dim: false, intent: null, tip: { title: it.p.label, lines: [`${pct(it.p.n / focus.n)} of ${focus.label}`, `${fmtInt(it.p.n)} needs`] } });
   }
@@ -400,11 +465,11 @@ function render(o: Orbit, S: Scene, L: Live, overlay: CanvasRenderingContext2D):
   const target = new Map<string, number>();
   for (const a of order) {
     if (boxes.size >= budget && !pinned.has(a.id)) break;
-    ctx.font = font(12.5, 500);
+    ctx.font = font(15, 500);
     const nameW = ctx.measureText(a.name.length > 38 ? `${a.name.slice(0, 37)}…` : a.name).width;
-    ctx.font = font(13, 800);
-    const bw = Math.max(nameW, ctx.measureText(a.value).width) + 18;
-    const bh = 38;
+    ctx.font = font(16, 800);
+    const bw = Math.max(nameW, ctx.measureText(a.value).width) + 22;
+    const bh = 46;
     const prev = A.placement.get(a.id);
     const tries = prev === undefined ? SPOTS.map((_, i) => i) : [prev, ...SPOTS.map((_, i) => i).filter((i) => i !== prev)];
     for (const si of tries) {
@@ -436,7 +501,7 @@ function render(o: Orbit, S: Scene, L: Live, overlay: CanvasRenderingContext2D):
     ctx.beginPath(); ctx.arc(a.x, a.y, 2.2, 0, Math.PI * 2); ctx.fill();
     const hot = pinned.has(a.id);
     ctx.fillStyle = hot ? t.text : t.frame;
-    ctx.globalAlpha = alpha;
+    ctx.globalAlpha = alpha * (hot ? 0.96 : 0.86);
     ctx.beginPath(); ctx.roundRect(b.x, b.y, b.w, b.h, 3); ctx.fill();
     ctx.globalAlpha = alpha;
     ctx.strokeStyle = hot ? t.text : t.text2;
@@ -444,11 +509,11 @@ function render(o: Orbit, S: Scene, L: Live, overlay: CanvasRenderingContext2D):
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
     ctx.fillStyle = hot ? t.frame : t.text;
-    ctx.font = font(13, 800);
-    ctx.fillText(a.value, b.x + b.w / 2, b.y + 16);
+    ctx.font = font(16, 800);
+    ctx.fillText(a.value, b.x + b.w / 2, b.y + 19);
     ctx.fillStyle = hot ? t.frame : t.text2;
-    ctx.font = font(12.5, 500);
-    ctx.fillText(a.name.length > 38 ? `${a.name.slice(0, 37)}…` : a.name, b.x + b.w / 2, b.y + 31);
+    ctx.font = font(15, 500);
+    ctx.fillText(a.name.length > 38 ? `${a.name.slice(0, 37)}…` : a.name, b.x + b.w / 2, b.y + 38);
   }
   ctx.globalAlpha = 1;
 }
@@ -466,7 +531,7 @@ function step(L: Live, dt: number, reduce: boolean): boolean {
     const shown = Math.min(months, Math.max(1, Math.round(A.t > months + 0.5 ? 1 : A.t)));
     if (shown !== st.month) L.onMonth(shown);
   }
-  const power = st.scale === "sqrt" ? 0.5 : 1;
+  const power = POWER[st.scale];
   const backdrop = st.level === 2 ? 1 : 0;
   if (reduce && !L.playing) {
     A.t = st.month; A.power = power; A.backdrop = backdrop; A.heightMix = 1; A.colorMix = 1;
@@ -535,7 +600,7 @@ export function Terrain(props: TerrainProps) {
     live.current = {
       ...props, theme, kern, max, hover: null, anchors: [], boxes: new Map(),
       anim: { t: state.month, series, fromWeights: null, fromMax: max, heightMix: 1, colorFrom: state.color, colorMix: 1,
-        power: state.scale === "sqrt" ? 0.5 : 1, backdrop: state.level === 2 ? 1 : 0, labelAlpha: new Map(), labelTarget: new Map(), placement: new Map() },
+        power: POWER[state.scale], backdrop: state.level === 2 ? 1 : 0, focusId: state.intent, labelAlpha: new Map(), labelTarget: new Map(), placement: new Map() },
     };
   }
   const L = live.current;

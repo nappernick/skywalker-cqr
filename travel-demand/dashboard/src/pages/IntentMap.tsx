@@ -11,7 +11,7 @@ import type { PageProps } from "./types";
 
 const HEIGHTS: readonly SegOption<HeightBasis>[] = [{ value: "all", label: "Share of all needs" }, { value: "answerable", label: "Share of answerable" }, { value: "gap", label: "Share of uncovered doc demand" }];
 const COLORS: readonly SegOption<ColorBasis>[] = [{ value: "group", label: "Category" }, { value: "coverage", label: "FAQ coverage" }, { value: "channel", label: "Channel" }, { value: "trend", label: "Trend" }];
-const SCALES: readonly SegOption<HeightScale>[] = [{ value: "linear", label: "Linear" }, { value: "sqrt", label: "Square root" }];
+const SCALES: readonly SegOption<HeightScale>[] = [{ value: "sqrt", label: "Square root" }, { value: "linear", label: "Linear" }, { value: "squared", label: "x²" }, { value: "cubed", label: "x³" }, { value: "fifth", label: "x⁵" }];
 const PARTS: readonly SegOption<PartBasis>[] = [{ value: "topic", label: "River topic" }, { value: "channel", label: "Channel" }, { value: "region", label: "Region" }, { value: "month", label: "Month" }];
 const MAP_COLORS: readonly SegOption<MapColor>[] = [{ value: "cluster", label: "Co-occurrence groups" }, { value: "domain", label: "Domain" }, { value: "channel", label: "Channel" }, { value: "coverage", label: "FAQ coverage" }];
 const BASES: readonly SegOption<LinkBasis>[] = [{ value: "time", label: "Time: rise and fall together" }, { value: "person", label: "Same person, next ticket" }, { value: "ticket", label: "Same ticket" }];
