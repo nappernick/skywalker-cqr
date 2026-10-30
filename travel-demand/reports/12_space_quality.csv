@@ -1,0 +1,6 @@
+measure,value
+intents,63
+embedding model,BAAI/bge-small-en-v1.5
+distinct titles embedded,2650
+layout stability: mean Procrustes disparity across 4 seeds (0 = identical),0.259
+share of each intent's 5 nearest neighbours in the same category,0.384

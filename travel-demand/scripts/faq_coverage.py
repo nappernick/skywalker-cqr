@@ -3,7 +3,7 @@
 Coverage judgments live in config/faq_coverage.csv (one row per intent, reviewed by hand
 against every fragment of the corpus). The corpus file stays in data/ (not committed).
 
-Usage: python3 scripts/coverage.py [data/travel.sqlite] [data/corpus/skywalker_faq_corpus.jsonl]
+Usage: python3 scripts/faq_coverage.py [data/travel.sqlite] [data/corpus/skywalker_faq_corpus.jsonl]
 """
 import json, sqlite3, sys
 from pathlib import Path

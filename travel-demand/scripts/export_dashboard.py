@@ -47,7 +47,10 @@ def main(db):
         "not_on_river": t.river_topic.fillna("").str.contains(r"not (?:listed|mentioned)? ?on river", case=False).astype(int),
         "channel": t.ticket_id.map(hardest),
         "n_intents": t.n_intents,
+        # River menu topic the requester picked (template text, no personal data); free-text titles are not shipped.
+        "topic": t.river_topic.where(t.title_is_template.astype(bool)).str.replace(r"\s+", " ", regex=True).str.strip().astype(object),
     })
+    tickets["topic"] = tickets.topic.where(tickets.topic.notna(), None)
     write("tickets.json", tickets.to_dict("records"))
     ti = ti.assign(k=ti.ticket_id.map(key)).drop(columns="ticket_id").rename(columns={"intent_id": "intent", "channel_basis": "basis"})
     write("ticket_intents.json", ti[["k", "intent", "channel", "basis"]].to_dict("records"))

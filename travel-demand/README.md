@@ -95,10 +95,10 @@ Requires `pandas` and `openpyxl`. Findings are in [`FINDINGS.md`](FINDINGS.md).
 - `partial`: a fragment touches it but misses what tickets ask.
 - `none`: no fragment covers it.
 
-Each judgment names the fragments and the gap. `scripts/coverage.py` weights coverage by demand and writes `reports/11_*.csv`. That includes the tickets filed after a covering FAQ was first certified.
+Each judgment names the fragments and the gap. `scripts/faq_coverage.py` weights coverage by demand and writes `reports/11_*.csv`. That includes the tickets filed after a covering FAQ was first certified.
 
 ```bash
-python3 scripts/coverage.py
+python3 scripts/faq_coverage.py
 ```
 
 ## Dashboard
@@ -107,4 +107,21 @@ python3 scripts/coverage.py
 
 ```bash
 python3 scripts/export_dashboard.py           # -> reports/dashboard/*.json
+```
+
+## Intent map (semantic layout)
+
+`scripts/intent_space.py` places the 63 intents in a 2D semantic space for the dashboard's Intent map:
+
+- **Meaning vectors.** It embeds every distinct de-identified title and each intent's definition with `BAAI/bge-small-en-v1.5`, run locally via `fastembed`. Each intent's vector is 0.6 × its titles' mean embedding plus 0.4 × its definition's embedding.
+- **Layout.** It lays the intents out with UMAP on cosine distance between those vectors.
+- **Outputs:**
+  - `reports/dashboard/intent_space.json`: positions, closest intents by meaning, and title words that pass a privacy floor
+  - `reports/12_intent_space.csv`
+  - `reports/12_space_quality.csv`: layout stability across seeds, and the share of semantic neighbours in the same category
+
+On the page, size is ticket frequency (share of needs) and colour is category (domain). Extra dependencies: `scikit-learn`, `umap-learn`, `fastembed`. The model is cached under `data/models/` and is not committed.
+
+```bash
+python3 scripts/intent_space.py
 ```

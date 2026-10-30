@@ -66,6 +66,21 @@
   .tsd-links { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--cds-gap-xs); font-size: var(--cds-font-size-caption); }
   .tsd-links li { display: grid; gap: 2px; }
   .tsd-links .q { color: var(--color-fg-muted); }
+  .tsd-terrain-bar { display: flex; flex-wrap: wrap; gap: var(--cds-gap-sm) var(--cds-gap-lg); align-items: center; }
+  .tsd-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: var(--cds-font-size-body); min-width: 0; }
+  .tsd-crumbs .sep { color: var(--color-fg-muted); }
+  .tsd-crumb { font: inherit; background: none; border: 0; padding: 2px 4px; color: var(--color-fg-muted); cursor: pointer; border-radius: var(--cds-radius); }
+  .tsd-crumb:hover { background: var(--color-bg); }
+  .tsd-crumb[aria-current="true"] { color: var(--color-fg); font-weight: 600; }
+  .tsd-section { margin: var(--cds-gap-md) 0 0; font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); }
+  .tsd-rank { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; counter-reset: rk; }
+  .tsd-rank-btn { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; font: inherit; font-size: var(--cds-font-size-caption); text-align: left; color: var(--color-fg); background: none; border: 0; padding: 4px; border-radius: var(--cds-radius); cursor: pointer; }
+  .tsd-rank-btn:hover { background: var(--color-bg); }
+  .tsd-rank-btn .vl { color: var(--color-fg-muted); font-variant-numeric: tabular-nums; }
+  .tsd-rank-btn .bar { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: var(--cds-chart-grid); overflow: hidden; }
+  .tsd-rank-btn .bar span { display: block; height: 100%; }
+  .tsd-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .tsd-chip { font-size: var(--cds-font-size-caption); border: 1px solid var(--color-border-line); border-radius: 999px; padding: 0 8px; }
   .tsd-pill { display: inline-block; padding: 0 6px; border-radius: 999px; border: 1px solid currentColor; font-size: var(--cds-font-size-caption); white-space: nowrap; }
   .tsd-pill.full { color: var(--color-ok); }
   .tsd-pill.partial { color: var(--color-warn); }
@@ -139,6 +154,51 @@
   </section>
 
   <section class="tsd-page" id="map" data-page="map" hidden>
+    <article class="tsd-card wide" id="card-terrain">
+      <h2>Intent map</h2>
+      <p class="sub">Each column is an intent. <b>Size</b> is how often it is asked: its share of all needs, as height and footprint. <b>Colour</b> is its category. <b>Position</b> is meaning: intents about similar things stand close together, placed from sentence embeddings of the titles people wrote or picked and of each intent's definition. Scroll to zoom in from categories to intents to the parts of one intent, and back out; click a column to drill in; double-click empty ground or press Escape to go up a level. Drag to rotate, shift-drag to pan.</p>
+      <div class="tsd-terrain-bar">
+        <div class="tsd-seg" role="group" aria-label="Column height">
+          <span class="lab">Size by</span>
+          <button class="tsd-btn" type="button" data-th="all" aria-pressed="true">Share of all needs</button>
+          <button class="tsd-btn" type="button" data-th="answerable" aria-pressed="false">Share of answerable</button>
+          <button class="tsd-btn" type="button" data-th="gap" aria-pressed="false">Share of uncovered doc demand</button>
+        </div>
+        <div class="tsd-seg" role="group" aria-label="Column colour">
+          <span class="lab">Colour</span>
+          <button class="tsd-btn" type="button" data-tc="group" aria-pressed="true">Category</button>
+          <button class="tsd-btn" type="button" data-tc="coverage" aria-pressed="false">FAQ coverage</button>
+          <button class="tsd-btn" type="button" data-tc="channel" aria-pressed="false">Channel</button>
+          <button class="tsd-btn" type="button" data-tc="trend" aria-pressed="false">Trend</button>
+        </div>
+        <div class="tsd-seg" role="group" aria-label="Height scale">
+          <span class="lab">Scale</span>
+          <button class="tsd-btn" type="button" data-tsc="linear" aria-pressed="true">Linear</button>
+          <button class="tsd-btn" type="button" data-tsc="sqrt" aria-pressed="false">Square root</button>
+        </div>
+        <div class="tsd-seg" role="group" aria-label="Break an intent down by">
+          <span class="lab">Intent parts</span>
+          <button class="tsd-btn" type="button" data-tp="topic" aria-pressed="true">River topic</button>
+          <button class="tsd-btn" type="button" data-tp="channel" aria-pressed="false">Channel</button>
+          <button class="tsd-btn" type="button" data-tp="region" aria-pressed="false">Region</button>
+          <button class="tsd-btn" type="button" data-tp="month" aria-pressed="false">Month</button>
+        </div>
+      </div>
+      <div class="tsd-terrain-bar">
+        <nav class="tsd-crumbs" aria-label="Zoom level" data-draw="terrain-crumbs" data-source="tickets ticket_intents intents intent_space"></nav>
+        <button class="tsd-btn" id="terr-up" type="button">Zoom out a level</button>
+        <button class="tsd-btn" id="terr-home" type="button">Back to all categories</button>
+        <label class="tsd-range">Month <input id="terr-month" type="range" min="0" max="11" step="1" value="0"> <b data-draw="terrain-month-value" data-source="tickets">—</b></label>
+        <button class="tsd-btn" id="terr-play" type="button" aria-pressed="false">Play months</button>
+      </div>
+      <div class="tsd-split">
+        <div class="tsd-chart tall dash-skeleton" data-draw="c-terrain" data-source="tickets ticket_intents intents intent_space"></div>
+        <aside class="tsd-side" data-draw="terrain-panel" data-source="tickets ticket_intents intents intent_space"></aside>
+      </div>
+      <p class="sub">Shares count needs (ticket–intent rows), so each level sums to 100%. Trend colour compares an intent's share in July–September with January–March. Placement is a UMAP layout of 63 intents from BAAI/bge-small-en-v1.5 sentence embeddings; exact positions shift a little between runs, so read neighbourhoods, not exact distances. The side panel lists each intent's closest intents by meaning.</p>
+    </article>
+
+    <h2 class="tsd-section">How intents move together</h2>
     <div class="tsd-mapbar">
       <div class="tsd-seg" role="group" aria-label="Color and group intents by">
         <span class="lab">Color and group by</span>
@@ -157,28 +217,17 @@
       <button class="tsd-btn" id="map-clear" type="button">Clear selection</button>
     </div>
     <div class="tsd-grid">
-      <article class="tsd-card wide" id="card-constellation">
-        <h2>Intent constellation</h2>
-        <p class="sub">Each sphere is an intent, sized by tickets in view. By default, lines join intents whose weekly share of tickets rises and falls together (Pearson r across 38 full weeks, intents with 20+ tickets); long-dashed lines mean one tends to lead the other by 1–4 weeks. Switch the link basis above for same-person sequences (dotted) or same-ticket co-occurrence. Drag to rotate, scroll to zoom, shift-drag to pan, double-click to reset. Click an intent to pin its neighbourhood; shift-click to filter the whole dashboard to it.</p>
-        <div class="tsd-split">
-          <div class="tsd-chart tall dash-skeleton" data-draw="c-constellation" data-source="tickets ticket_intents intents transitions"></div>
-          <aside class="tsd-side">
-            <p class="sub">Selected intent</p>
-            <div data-draw="map-selected" data-source="tickets ticket_intents intents transitions"></div>
-          </aside>
-        </div>
+      <article class="tsd-card wide" id="card-timepair">
+        <h2>Rising and falling together</h2>
+        <p class="sub">The pinned intent (or the most connected one) against its three strongest time partners: each line is that intent's weekly share of tickets, standardised so shapes compare. Hover for weekly counts.</p>
+        <div class="tsd-chart dash-skeleton" data-draw="c-timepair" data-source="tickets ticket_intents intents"></div>
       </article>
       <article class="tsd-card wide" id="card-groups">
         <h2>Groupings found in the data</h2>
         <p class="sub">Intents merged by average-linkage clustering on the current link basis: weekly correlation for time, or shared count ÷ √(tickets A × tickets B) for the others. Raise the cutoff for tighter groups, lower it to merge more. A time group is demand that surges together and can be prepared for together. Click a row to pin its lead intent.</p>
         <div class="tsd-scroll" data-draw="t-groups" data-source="tickets ticket_intents intents transitions"></div>
       </article>
-      <article class="tsd-card wide" id="card-timepair">
-        <h2>Rising and falling together</h2>
-        <p class="sub">The pinned intent (or the most connected one) against its three strongest time partners: each line is that intent's weekly share of tickets, standardised so shapes compare. Hover for weekly counts.</p>
-        <div class="tsd-chart dash-skeleton" data-draw="c-timepair" data-source="tickets ticket_intents intents"></div>
-      </article>
-      <article class="tsd-card" id="card-matrix">
+      <article class="tsd-card wide" id="card-matrix">
         <h2>Co-occurrence matrix</h2>
         <div class="tsd-seg" role="group" aria-label="Matrix measure">
           <button class="tsd-btn" type="button" data-matrix="cosine" aria-pressed="true">Strength</button>
@@ -187,20 +236,6 @@
         </div>
         <p class="sub">Intents ordered by group; dashed boxes mark groups. Cells show the current link basis (the measure buttons apply to same-ticket links). Scroll to zoom, drag to pan. Hover a cell for the pair; click to pin the row's intent.</p>
         <div class="tsd-chart tall dash-skeleton" data-draw="c-matrix" data-source="tickets ticket_intents intents transitions"></div>
-      </article>
-      <article class="tsd-card" id="card-pack">
-        <h2>Where the demand is dense</h2>
-        <p class="sub">Groups contain intents, intents contain channels; area is needs in view. Click a circle to zoom in, click the background to zoom out. Shift-click an intent to filter to it.</p>
-        <div class="tsd-chart tall dash-skeleton" data-draw="c-pack" data-source="tickets ticket_intents intents transitions"></div>
-      </article>
-      <article class="tsd-card wide" id="card-landscape">
-        <h2>Density over time</h2>
-        <div class="tsd-seg" role="group" aria-label="Landscape measure">
-          <button class="tsd-btn" type="button" data-land="tickets" aria-pressed="true">All tickets</button>
-          <button class="tsd-btn" type="button" data-land="answerable" aria-pressed="false">Answerable only</button>
-        </div>
-        <p class="sub">The 24 largest intents in view, placed side by side by group, across months from January 2026; height is tickets that month. Drag to rotate, scroll to zoom, shift-drag to pan. Hover a column for its value; click to pin the intent.</p>
-        <div class="tsd-chart tall dash-skeleton" data-draw="c-landscape" data-source="tickets ticket_intents intents transitions"></div>
       </article>
     </div>
   </section>
@@ -329,3 +364,4 @@
 
 <script src="app.js"></script>
 <script src="map.js"></script>
+<script src="terrain.js"></script>
