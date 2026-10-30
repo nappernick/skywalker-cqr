@@ -71,10 +71,11 @@ interface Anim {
 
 const ease = (k: number) => (k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2);
 
+/** Weights at continuous time t. Past the last month, playback wraps smoothly back into the first month. */
 function weightsAt(series: LandscapeSeries, t: number): Float64Array {
   const last = series.frames.length - 1;
   const i = Math.max(0, Math.min(last, Math.floor(t)));
-  const j = Math.min(last, i + 1);
+  const j = i < last ? i + 1 : t > last ? 1 : last;
   const f = Math.max(0, Math.min(1, t - i));
   const a = series.frames[i];
   const b = series.frames[j];
@@ -213,6 +214,8 @@ interface Live {
   go: Go;
   goUp: () => void;
   onShiftPick: (id: string) => void;
+  playing: boolean;
+  onMonth: (month: number) => void;
 }
 
 /** Label offsets tried in order (box centre relative to the anchor), so crowded labels move rather than overlap. */
@@ -335,7 +338,7 @@ function render(o: Orbit, S: Scene, L: Live, overlay: CanvasRenderingContext2D):
     S.dots.setColorAt(n, tmp.set(gNew.color(gNew.groupOf[n] ?? 0)).lerp(groundCol, dim ? 0.75 : 0));
   });
   // Only the instances in use are drawn; unused slots would otherwise render as unit spheres.
-  S.dots.count = Math.min(ints.length, S.dots.instanceMatrix.count);
+  S.dots.count = 0; // markers are drawn as label leader dots on the overlay, not as 3D spheres
   S.dots.instanceMatrix.needsUpdate = true;
   if (S.dots.instanceColor) S.dots.instanceColor.needsUpdate = true;
 
@@ -359,7 +362,7 @@ function render(o: Orbit, S: Scene, L: Live, overlay: CanvasRenderingContext2D):
     } else m4.makeScale(0, 0, 0);
     S.orbs.setMatrixAt(i, m4);
   }
-  S.orbs.count = partAt.length;
+  S.orbs.count = 0;
   S.orbs.instanceMatrix.needsUpdate = true;
   if (S.orbs.instanceColor) S.orbs.instanceColor.needsUpdate = true;
 
@@ -485,16 +488,25 @@ function render(o: Orbit, S: Scene, L: Live, overlay: CanvasRenderingContext2D):
 function step(L: Live, dt: number, reduce: boolean): boolean {
   const A = L.anim;
   const st = L.state;
+  const months = A.series.frames.length - 1;
+  if (L.playing && months > 0) {
+    // One continuous clock through the year: month 1 → month N → wraps back into month 1, forever.
+    A.t += dt * MONTHS_PER_SECOND * (reduce ? 0.5 : 1);
+    if (A.t < 1) A.t = Math.max(A.t, 0);
+    if (A.t >= months + 1) A.t -= months;
+    const shown = Math.min(months, Math.max(1, Math.round(A.t > months + 0.5 ? 1 : A.t)));
+    if (shown !== st.month) L.onMonth(shown);
+  }
   const power = st.scale === "sqrt" ? 0.5 : 1;
   const backdrop = st.level === 2 ? 1 : 0;
-  if (reduce) {
+  if (reduce && !L.playing) {
     A.t = st.month; A.power = power; A.backdrop = backdrop; A.heightMix = 1; A.colorMix = 1;
     A.labelAlpha = new Map(A.labelTarget);
     return false;
   }
-  let moving = false;
-  const d = st.month - A.t;
-  if (Math.abs(d) > 1e-3) {
+  let moving = L.playing;
+  const d = L.playing ? 0 : st.month - A.t;
+  if (L.playing) { /* the clock above drives time */ } else if (Math.abs(d) > 1e-3) {
     A.t += Math.sign(d) * Math.min(Math.abs(d), MONTHS_PER_SECOND * Math.max(1, Math.abs(d)) * dt);
     moving = true;
   } else A.t = st.month;
@@ -528,6 +540,9 @@ export interface TerrainProps {
   readonly onShiftPick: (id: string) => void;
   /** Incremented by the parent whenever navigation should animate the camera to the new level. */
   readonly flyKey: number;
+  /** While true the landscape plays the year continuously and loops; `onMonth` reports the month in view. */
+  readonly playing: boolean;
+  readonly onMonth: (month: number) => void;
 }
 
 /** The demand landscape: a lit surface whose hills are where demand concentrates in meaning space. */
@@ -563,7 +578,7 @@ export function Terrain(props: TerrainProps) {
     L.anim.colorFrom = L.state.color;
     L.anim.colorMix = 0;
   }
-  Object.assign(L, { td: props.td, state, go: props.go, goUp: props.goUp, onShiftPick: props.onShiftPick, theme, kern, max });
+  Object.assign(L, { td: props.td, state, go: props.go, goUp: props.goUp, onShiftPick: props.onShiftPick, playing: props.playing, onMonth: props.onMonth, theme, kern, max });
   const { show: showTip, hide: hideTip } = tip;
 
   const kickRef = useRef<() => void>(() => undefined);

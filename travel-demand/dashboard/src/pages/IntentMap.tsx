@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { IntentRecord } from "../domain/types";
 import { buildGraph, CUT_RANGE, DEFAULT_CUT, type LinkBasis } from "../domain/relations";
 import { HEIGHT_LABEL, INITIAL_TERRAIN, landscapeSeries, terrainData, type ColorBasis, type HeightBasis, type HeightScale, type Level, type PartBasis, type TerrainData, type TerrainState } from "../terrain/data";
 import { Terrain } from "../terrain/Terrain";
 import { dec2, fmtMonth, pct } from "../ui/format";
-import { prefersReducedMotion } from "../ui/hooks";
 import { Card, CoveragePill, Segmented, type SegOption } from "../ui/primitives";
 import { seriesColor, useTheme } from "../ui/theme";
 import { Groups, Matrix, nodeColor, TimePair, type MapColor, type MatrixMetric } from "./Relations";
@@ -97,14 +96,6 @@ export function IntentMap({ model: m, filters }: PageProps) {
   const patch = (p: Partial<TerrainState>) => setSt((s) => ({ ...s, ...p }));
 
   const months = m.index.months;
-  useEffect(() => {
-    if (!playing) return undefined;
-    const id = window.setInterval(() => setSt((s) => ({ ...s, month: s.month >= months.length ? 1 : s.month + 1 })), prefersReducedMotion() ? 1600 : 1100);
-    return () => window.clearInterval(id);
-  }, [playing, months.length]);
-  useEffect(() => {
-    if (playing && st.month >= months.length) setPlaying(false);
-  }, [playing, st.month, months.length]);
 
   const cut = cuts[basis];
   const [lo, hi] = CUT_RANGE[basis];
@@ -140,13 +131,13 @@ export function IntentMap({ model: m, filters }: PageProps) {
           <button type="button" className="btn" onClick={goUp}>Zoom out a level</button>
           <button type="button" className="btn" onClick={() => go(0, null, null)}>Back to all categories</button>
           <label className="range">Month
-            <input type="range" min={0} max={months.length} step={1} value={st.month} onChange={(e) => patch({ month: Number(e.target.value) })} />
+            <input type="range" min={0} max={months.length} step={1} value={st.month} onChange={(e) => { setPlaying(false); patch({ month: Number(e.target.value) }); }} />
             <b>{monthLabel === null ? "All months" : fmtMonth(monthLabel)}</b>
           </label>
-          <button type="button" className="btn" aria-pressed={playing} onClick={() => setPlaying((p) => !p)}>Play months</button>
+          <button type="button" className="btn" aria-pressed={playing} onClick={() => setPlaying((p) => !p)}>{playing ? "Pause" : "Play year (loops)"}</button>
         </div>
         <div className="split">
-          {td.intents.length ? <Terrain td={td} series={series} state={st} go={go} goUp={goUp} onShiftPick={(id) => filters.toggle("intent", id)} flyKey={flyKey} /> : <div className="empty">No needs match these filters</div>}
+          {td.intents.length ? <Terrain td={td} series={series} state={st} go={go} goUp={goUp} onShiftPick={(id) => filters.toggle("intent", id)} flyKey={flyKey} playing={playing} onMonth={(month) => patch({ month })} /> : <div className="empty">No needs match these filters</div>}
           <SidePanel td={td} st={st} go={go} />
         </div>
         <p className="sub">Shares count needs (ticket–intent rows), so each level sums to 100%. Trend colour compares an intent's share in July–September with January–March. Placement is a UMAP layout of 63 intents from BAAI/bge-small-en-v1.5 sentence embeddings; read neighbourhoods, not exact distances.</p>
