@@ -51,6 +51,21 @@
   .tsd-fail::before { content: ""; width: .375rem; height: .375rem; border-radius: 50%; background: var(--color-bad); }
   [data-dash-source-state=refreshing] { opacity: .5; transition: opacity var(--cds-dur-slow); }
   [data-dash-source-state=empty] { color: transparent; }
+  .tsd-mapbar { display: flex; flex-wrap: wrap; gap: var(--cds-gap-sm) var(--cds-gap-lg); align-items: center; }
+  .tsd-seg { display: flex; flex-wrap: wrap; gap: var(--cds-gap-xs); align-items: center; }
+  .tsd-seg .lab { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); margin-right: var(--cds-gap-xs); }
+  .tsd-btn[aria-pressed="true"] { background: var(--color-fg); color: var(--color-bg); border-color: var(--color-fg); }
+  .tsd-range, .tsd-check { display: inline-flex; align-items: center; gap: var(--cds-gap-xs); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .tsd-range b { color: var(--color-fg); font-variant-numeric: tabular-nums; min-width: 2.5em; }
+  .tsd-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(14rem, 20rem); gap: var(--cds-gap-md); align-items: start; }
+  @media (max-width: 900px) { .tsd-split { grid-template-columns: minmax(0, 1fr); } }
+  .tsd-side { display: grid; gap: var(--cds-gap-xs); min-width: 0; }
+  .tsd .tsd-sel-name { margin: 0; font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); }
+  .tsd-chart canvas:focus-visible { outline: 2px solid var(--color-fg); outline-offset: 2px; }
+  .tsd-table .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: middle; }
+  .tsd-links { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--cds-gap-xs); font-size: var(--cds-font-size-caption); }
+  .tsd-links li { display: grid; gap: 2px; }
+  .tsd-links .q { color: var(--color-fg-muted); }
   .tsd-pill { display: inline-block; padding: 0 6px; border-radius: 999px; border: 1px solid currentColor; font-size: var(--cds-font-size-caption); white-space: nowrap; }
   .tsd-pill.full { color: var(--color-ok); }
   .tsd-pill.partial { color: var(--color-warn); }
@@ -77,6 +92,7 @@
 
   <nav class="tsd-tabs" role="tablist" aria-label="Pages">
     <button class="tsd-tab" role="tab" type="button" data-tab="overview" aria-selected="true">Overview</button>
+    <button class="tsd-tab" role="tab" type="button" data-tab="map" aria-selected="false">Intent map</button>
     <button class="tsd-tab" role="tab" type="button" data-tab="answerable" aria-selected="false">Answerable</button>
     <button class="tsd-tab" role="tab" type="button" data-tab="coverage" aria-selected="false">FAQ coverage</button>
     <button class="tsd-tab" role="tab" type="button" data-tab="intents" aria-selected="false">All intents</button>
@@ -116,8 +132,75 @@
       </article>
       <article class="tsd-card wide" id="card-monthly">
         <h2>Tickets per month by channel</h2>
-        <p class="sub">By creation month. November and December 2025 hold only tickets still open into the export, so they are partial. Markers show events seen in the data.</p>
+        <p class="sub">By creation month. November and December 2025 hold only tickets still open into the export, so they are partial. Markers show events seen in the data. Drag across months to filter every card to that range.</p>
         <div class="tsd-chart dash-skeleton" data-draw="c-monthly" data-source="tickets ticket_intents"></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="tsd-page" id="map" data-page="map" hidden>
+    <div class="tsd-mapbar">
+      <div class="tsd-seg" role="group" aria-label="Color and group intents by">
+        <span class="lab">Color and group by</span>
+        <button class="tsd-btn" type="button" data-mapcolor="cluster" aria-pressed="true">Co-occurrence groups</button>
+        <button class="tsd-btn" type="button" data-mapcolor="domain" aria-pressed="false">Domain</button>
+        <button class="tsd-btn" type="button" data-mapcolor="channel" aria-pressed="false">Channel</button>
+        <button class="tsd-btn" type="button" data-mapcolor="coverage" aria-pressed="false">FAQ coverage</button>
+      </div>
+      <div class="tsd-seg" role="group" aria-label="Link intents by">
+        <span class="lab">Link intents by</span>
+        <button class="tsd-btn" type="button" data-mapbasis="time" aria-pressed="true">Time: rise and fall together</button>
+        <button class="tsd-btn" type="button" data-mapbasis="person" aria-pressed="false">Same person, next ticket</button>
+        <button class="tsd-btn" type="button" data-mapbasis="ticket" aria-pressed="false">Same ticket</button>
+      </div>
+      <label class="tsd-range">Link cutoff <input id="map-tau" type="range" min="0" max="1" step="0.01" value="0.38"> <b data-draw="map-tau-value">—</b></label>
+      <button class="tsd-btn" id="map-clear" type="button">Clear selection</button>
+    </div>
+    <div class="tsd-grid">
+      <article class="tsd-card wide" id="card-constellation">
+        <h2>Intent constellation</h2>
+        <p class="sub">Each sphere is an intent, sized by tickets in view. By default, lines join intents whose weekly share of tickets rises and falls together (Pearson r across 38 full weeks, intents with 20+ tickets); long-dashed lines mean one tends to lead the other by 1–4 weeks. Switch the link basis above for same-person sequences (dotted) or same-ticket co-occurrence. Drag to rotate, scroll to zoom, shift-drag to pan, double-click to reset. Click an intent to pin its neighbourhood; shift-click to filter the whole dashboard to it.</p>
+        <div class="tsd-split">
+          <div class="tsd-chart tall dash-skeleton" data-draw="c-constellation" data-source="tickets ticket_intents intents transitions"></div>
+          <aside class="tsd-side">
+            <p class="sub">Selected intent</p>
+            <div data-draw="map-selected" data-source="tickets ticket_intents intents transitions"></div>
+          </aside>
+        </div>
+      </article>
+      <article class="tsd-card wide" id="card-groups">
+        <h2>Groupings found in the data</h2>
+        <p class="sub">Intents merged by average-linkage clustering on the current link basis: weekly correlation for time, or shared count ÷ √(tickets A × tickets B) for the others. Raise the cutoff for tighter groups, lower it to merge more. A time group is demand that surges together and can be prepared for together. Click a row to pin its lead intent.</p>
+        <div class="tsd-scroll" data-draw="t-groups" data-source="tickets ticket_intents intents transitions"></div>
+      </article>
+      <article class="tsd-card wide" id="card-timepair">
+        <h2>Rising and falling together</h2>
+        <p class="sub">The pinned intent (or the most connected one) against its three strongest time partners: each line is that intent's weekly share of tickets, standardised so shapes compare. Hover for weekly counts.</p>
+        <div class="tsd-chart dash-skeleton" data-draw="c-timepair" data-source="tickets ticket_intents intents"></div>
+      </article>
+      <article class="tsd-card" id="card-matrix">
+        <h2>Co-occurrence matrix</h2>
+        <div class="tsd-seg" role="group" aria-label="Matrix measure">
+          <button class="tsd-btn" type="button" data-matrix="cosine" aria-pressed="true">Strength</button>
+          <button class="tsd-btn" type="button" data-matrix="support" aria-pressed="false">Shared tickets</button>
+          <button class="tsd-btn" type="button" data-matrix="lift" aria-pressed="false">Lift</button>
+        </div>
+        <p class="sub">Intents ordered by group; dashed boxes mark groups. Cells show the current link basis (the measure buttons apply to same-ticket links). Scroll to zoom, drag to pan. Hover a cell for the pair; click to pin the row's intent.</p>
+        <div class="tsd-chart tall dash-skeleton" data-draw="c-matrix" data-source="tickets ticket_intents intents transitions"></div>
+      </article>
+      <article class="tsd-card" id="card-pack">
+        <h2>Where the demand is dense</h2>
+        <p class="sub">Groups contain intents, intents contain channels; area is needs in view. Click a circle to zoom in, click the background to zoom out. Shift-click an intent to filter to it.</p>
+        <div class="tsd-chart tall dash-skeleton" data-draw="c-pack" data-source="tickets ticket_intents intents transitions"></div>
+      </article>
+      <article class="tsd-card wide" id="card-landscape">
+        <h2>Density over time</h2>
+        <div class="tsd-seg" role="group" aria-label="Landscape measure">
+          <button class="tsd-btn" type="button" data-land="tickets" aria-pressed="true">All tickets</button>
+          <button class="tsd-btn" type="button" data-land="answerable" aria-pressed="false">Answerable only</button>
+        </div>
+        <p class="sub">The 24 largest intents in view, placed side by side by group, across months from January 2026; height is tickets that month. Drag to rotate, scroll to zoom, shift-drag to pan. Hover a column for its value; click to pin the intent.</p>
+        <div class="tsd-chart tall dash-skeleton" data-draw="c-landscape" data-source="tickets ticket_intents intents transitions"></div>
       </article>
     </div>
   </section>
@@ -245,3 +328,4 @@
 </div>
 
 <script src="app.js"></script>
+<script src="map.js"></script>

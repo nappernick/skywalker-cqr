@@ -35,6 +35,7 @@ def main(db):
     tickets = pd.DataFrame({
         "k": t.index,
         "month": t.create_month,
+        "week": (t.create.dt.tz_localize(None).dt.normalize() - pd.to_timedelta(t.create.dt.weekday, unit="D")).dt.strftime("%Y-%m-%d"),
         "region": t.region,
         "country": t.country,
         "origin": t.origin.where(t.origin.isin(["River", "SIM-T"]), "Other"),

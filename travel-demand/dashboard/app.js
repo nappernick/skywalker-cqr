@@ -342,6 +342,21 @@ dash.draw('c-monthly', (el) => {
     .on('mousemove', (event, d) => tip.show(event, `${monthFmt(monthDate(d.month))} · ${fmtInt(d.total)} tickets`,
       CH.filter((k) => d[k]).map((k) => `${CH_LABEL[k]}: ${fmtInt(d[k])}`)))
     .on('mouseleave', () => tip.hide());
+  // Drag across months to set the month filter for every card.
+  const brush = d3.brushX().extent([[yAxisW, mt], [w - 4, h - 24]]).on('end', (event) => {
+    if (!event.sourceEvent || !event.selection) return;
+    const [a, b] = event.selection;
+    const picked = months.filter((mo) => x(mo) + x.bandwidth() / 2 >= a && x(mo) + x.bandwidth() / 2 <= b);
+    if (picked.length) dash.setParams({ from: picked[0], to: picked[picked.length - 1] });
+  });
+  const bg = svg.append('g').attr('class', 'tsd-brush').call(brush);
+  bg.selectAll('.selection').style('fill', 'var(--cds-chart-reference)').style('fill-opacity', 0.15).style('stroke', 'var(--cds-chart-reference)');
+  bg.selectAll('.overlay').on('mousemove.tip', (event) => {
+    const [px] = d3.pointer(event, svg.node());
+    const d = data.find((r) => px >= x(r.month) && px <= x(r.month) + x.bandwidth());
+    if (d) tip.show(event, `${monthFmt(monthDate(d.month))} · ${fmtInt(d.total)} tickets`, CH.filter((k) => d[k]).map((k) => `${CH_LABEL[k]}: ${fmtInt(d[k])}`));
+    else tip.hide();
+  }).on('mouseleave.tip', () => tip.hide());
   el.style.minHeight = `${h}px`;
 });
 
@@ -817,3 +832,9 @@ dash.draw('t-coverage', (el) => {
     }
   });
 });
+
+// Shared with map.js (each page script runs in its own scope).
+window.tsd = {
+  model, begin, emptyNote, tooltip, resolveColor, textWidth, fitText, byIntent, toggleParam,
+  chColor, covColor, CH, CH_LABEL, COV, COV_LABEL, fmtInt, pct, monthFmt, monthDate,
+};
