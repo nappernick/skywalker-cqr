@@ -104,8 +104,6 @@ interface Scene {
 }
 
 const MAX_ORBS = PART_TOP + 1;
-/** Scratch buffer for the colour blur. */
-const blurBuf = new Float32Array(GRID * GRID * 3);
 /** Capacity of the reused contour-line buffer, in floats. */
 const LINE_FLOATS = 6 * 60000;
 
@@ -249,25 +247,17 @@ function render(o: Orbit, S: Scene, L: Live, overlay: CanvasRenderingContext2D):
   const col = S.surface.geometry.getAttribute("color");
   const posArr = pos.array;
   const colArr = col.array;
-  const fadeTo = 1 - A.backdrop * 0.7;
-  // Colour at a point is the blend of group colours weighted by their share there (sharpened, so the leading
-  // group dominates but boundaries fade rather than snap), faded into the ground at the foothills.
+  // Each point is exactly one palette colour: its dominant group's, or the panel colour where demand is thin.
+  // No blending between groups, so every colour on the map is a page colour (shading only lightens or darkens it).
   const mixed = [0, 0, 0];
   const blend = (groups: readonly Float64Array[], palette: readonly (readonly [number, number, number])[], k: number, v: number) => {
-    let sw = 0; let r = 0; let g = 0; let b = 0; let top = 0;
-    for (let gi = 0; gi < groups.length; gi += 1) {
-      const share = v > 0 ? (groups[gi]?.[k] ?? 0) / v : 0;
-      if (share <= 0) continue;
-      top = Math.max(top, share);
-      const wgt = share * share * share;
-      const c = palette[gi];
-      if (!c) continue;
-      sw += wgt; r += c[0] * wgt; g += c[1] * wgt; b += c[2] * wgt;
-    }
-    const strength = sw > 0 ? Math.max(0, Math.min(1, (top - 0.25) / 0.35)) * Math.min(1, (v / vmax / 0.05) ** 0.8) * fadeTo : 0;
-    mixed[0] = gr + ((sw ? r / sw : gr) - gr) * strength;
-    mixed[1] = gg + ((sw ? g / sw : gg) - gg) * strength;
-    mixed[2] = gb + ((sw ? b / sw : gb) - gb) * strength;
+    let best = 0;
+    let bi = -1;
+    for (let gi = 0; gi < groups.length; gi += 1) { const x = groups[gi]?.[k] ?? 0; if (x > best) { best = x; bi = gi; } }
+    const c = v / vmax >= 0.035 ? palette[bi] : undefined;
+    mixed[0] = c ? c[0] : gr;
+    mixed[1] = c ? c[1] : gg;
+    mixed[2] = c ? c[2] : gb;
   };
   for (let k = 0; k < GRID * GRID; k += 1) {
     const v = fNew.values[k] ?? 0;
@@ -285,22 +275,6 @@ function render(o: Orbit, S: Scene, L: Live, overlay: CanvasRenderingContext2D):
     }
     if (colArr instanceof Float32Array) { colArr[k * 3] = r; colArr[k * 3 + 1] = g; colArr[k * 3 + 2] = bl; }
   }
-  // Two passes of a separable box blur on the colours, so boundaries between groups are soft, not sawtoothed.
-  if (colArr instanceof Float32Array) {
-    for (let pass = 0; pass < 2; pass += 1) {
-      for (const horizontal of [true, false]) {
-        blurBuf.set(colArr);
-        for (let j = 0; j < GRID; j += 1) {
-          for (let i = 0; i < GRID; i += 1) {
-            const k = j * GRID + i;
-            const a = horizontal ? (i > 0 ? k - 1 : k) : (j > 0 ? k - GRID : k);
-            const b = horizontal ? (i < GRID - 1 ? k + 1 : k) : (j < GRID - 1 ? k + GRID : k);
-            for (let ch = 0; ch < 3; ch += 1) colArr[k * 3 + ch] = ((blurBuf[a * 3 + ch] ?? 0) + (blurBuf[k * 3 + ch] ?? 0) * 2 + (blurBuf[b * 3 + ch] ?? 0)) / 4;
-          }
-        }
-      }
-    }
-  }
   // Bake light into the colours: slopes facing the light brighten, slopes away darken, flat ground stays
   // exactly its theme colour (shade 1), so the map always matches the page palette.
   if (colArr instanceof Float32Array && posArr instanceof Float32Array) {
@@ -315,7 +289,7 @@ function render(o: Orbit, S: Scene, L: Live, overlay: CanvasRenderingContext2D):
         const dz = (h(i, j + 1) - h(i, j - 1)) / (2 * cell);
         const nl = Math.hypot(dx, 1, dz);
         const dot = Math.max(0, (-dx * lx + ly - dz * lz) / (nl * ln));
-        const shade = Math.max(0.55, Math.min(1.3, (0.6 + 0.4 * dot) / flat));
+        const shade = Math.max(0.8, Math.min(1.12, (0.6 + 0.4 * dot) / flat));
         const k = (j * GRID + i) * 3;
         for (let ch = 0; ch < 3; ch += 1) colArr[k + ch] = Math.min(1, (colArr[k + ch] ?? 0) * shade);
       }
@@ -482,7 +456,7 @@ function render(o: Orbit, S: Scene, L: Live, overlay: CanvasRenderingContext2D):
     ctx.beginPath(); ctx.arc(a.x, a.y, 2.2, 0, Math.PI * 2); ctx.fill();
     const hot = pinned.has(a.id);
     ctx.fillStyle = hot ? t.text : t.frame;
-    ctx.globalAlpha = alpha * (hot ? 0.96 : 0.86);
+    ctx.globalAlpha = alpha;
     ctx.beginPath(); ctx.roundRect(b.x, b.y, b.w, b.h, 3); ctx.fill();
     ctx.globalAlpha = alpha;
     ctx.strokeStyle = hot ? t.text : t.text2;
