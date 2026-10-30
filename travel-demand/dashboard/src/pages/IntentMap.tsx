@@ -15,6 +15,8 @@ const SCALES: readonly SegOption<HeightScale>[] = [{ value: "linear", label: "Li
 const PARTS: readonly SegOption<PartBasis>[] = [{ value: "topic", label: "River topic" }, { value: "channel", label: "Channel" }, { value: "region", label: "Region" }, { value: "month", label: "Month" }];
 const MAP_COLORS: readonly SegOption<MapColor>[] = [{ value: "cluster", label: "Co-occurrence groups" }, { value: "domain", label: "Domain" }, { value: "channel", label: "Channel" }, { value: "coverage", label: "FAQ coverage" }];
 const BASES: readonly SegOption<LinkBasis>[] = [{ value: "time", label: "Time: rise and fall together" }, { value: "person", label: "Same person, next ticket" }, { value: "ticket", label: "Same ticket" }];
+type Speed = "0.25" | "0.5" | "1" | "2" | "4";
+const SPEEDS: readonly SegOption<Speed>[] = [{ value: "0.25", label: "¼×" }, { value: "0.5", label: "½×" }, { value: "1", label: "1×" }, { value: "2", label: "2×" }, { value: "4", label: "4×" }];
 const METRICS: readonly SegOption<MatrixMetric>[] = [{ value: "cosine", label: "Strength" }, { value: "support", label: "Shared tickets" }, { value: "lift", label: "Lift" }];
 
 interface RankItem {
@@ -76,6 +78,7 @@ export function IntentMap({ model: m, filters }: PageProps) {
   const [st, setSt] = useState<TerrainState>(INITIAL_TERRAIN);
   const [flyKey, setFlyKey] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [speed, setSpeed] = useState<Speed>("1");
   const [selected, setSelected] = useState<string | null>(null);
   const [basis, setBasis] = useState<LinkBasis>("time");
   const [cuts, setCuts] = useState<Readonly<Record<LinkBasis, number>>>(DEFAULT_CUT);
@@ -135,9 +138,10 @@ export function IntentMap({ model: m, filters }: PageProps) {
             <b>{monthLabel === null ? "All months" : fmtMonth(monthLabel)}</b>
           </label>
           <button type="button" className="btn" aria-pressed={playing} onClick={() => setPlaying((p) => !p)}>{playing ? "Pause" : "Play year (loops)"}</button>
+          <Segmented label="Speed" options={SPEEDS} value={speed} onChange={setSpeed} />
         </div>
         <div className="split">
-          {td.intents.length ? <Terrain td={td} series={series} state={st} go={go} goUp={goUp} onShiftPick={(id) => filters.toggle("intent", id)} flyKey={flyKey} playing={playing} onMonth={(month) => patch({ month })} /> : <div className="empty">No needs match these filters</div>}
+          {td.intents.length ? <Terrain td={td} series={series} state={st} go={go} goUp={goUp} onShiftPick={(id) => filters.toggle("intent", id)} flyKey={flyKey} playing={playing} speed={Number(speed)} onMonth={(month) => patch({ month })} /> : <div className="empty">No needs match these filters</div>}
           <SidePanel td={td} st={st} go={go} />
         </div>
         <p className="sub">Shares count needs (ticket–intent rows), so each level sums to 100%. Trend colour compares an intent's share in July–September with January–March. Placement is a UMAP layout of 63 intents from BAAI/bge-small-en-v1.5 sentence embeddings; read neighbourhoods, not exact distances.</p>

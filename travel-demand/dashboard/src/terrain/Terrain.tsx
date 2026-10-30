@@ -96,8 +96,8 @@ interface Scene {
   readonly renderer: THREE.WebGLRenderer;
   readonly scene: THREE.Scene;
   readonly camera: THREE.PerspectiveCamera;
-  readonly surface: THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
-  readonly ground: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshStandardMaterial>;
+  readonly surface: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
+  readonly ground: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
   readonly lines: THREE.LineSegments<THREE.BufferGeometry, THREE.LineBasicMaterial>;
   readonly dots: THREE.InstancedMesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>;
   readonly orbs: THREE.InstancedMesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>;
@@ -116,11 +116,6 @@ function makeScene(canvas: HTMLCanvasElement, w: number, h: number, nIntents: nu
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(32, w / h, 0.05, 50);
-  // Soft sky fill plus a low raking sun, so slopes read as relief.
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x6f6f6f, 0.95));
-  const sun = new THREE.DirectionalLight(0xffffff, 2.4);
-  sun.position.set(-2.6, 1.9, 1.2);
-  scene.add(sun);
 
   const geo = new THREE.BufferGeometry();
   const pos = new Float32Array(GRID * GRID * 3);
@@ -141,10 +136,10 @@ function makeScene(canvas: HTMLCanvasElement, w: number, h: number, nIntents: nu
   geo.setIndex(index);
   geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
   geo.setAttribute("color", new THREE.BufferAttribute(new Float32Array(GRID * GRID * 3), 3));
-  const surface = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, metalness: 0 }));
+  const surface = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true }));
   scene.add(surface);
 
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshStandardMaterial({ roughness: 1, metalness: 0 }));
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshBasicMaterial());
   ground.rotation.x = -Math.PI / 2;
   ground.position.y = -0.0015;
   scene.add(ground);
@@ -215,6 +210,7 @@ interface Live {
   goUp: () => void;
   onShiftPick: (id: string) => void;
   playing: boolean;
+  speed: number;
   onMonth: (month: number) => void;
 }
 
@@ -245,7 +241,7 @@ function render(o: Orbit, S: Scene, L: Live, overlay: CanvasRenderingContext2D):
 
   // Surface heights and colours. Colour is the dominant group's, faded into the ground at the foothills and
   // where groups mix, so colour always means "most of the demand here is this".
-  const groundCol = new THREE.Color(interpolateRgb(t.frame, t.rule)(0.13));
+  const groundCol = new THREE.Color(t.block);
   const [gr, gg, gb] = rgb(groundCol);
   const cNew = Array.from({ length: gNew.n }, (_, g) => rgb(new THREE.Color(gNew.color(g))));
   const cOld = gOld ? Array.from({ length: gOld.n }, (_, g) => rgb(new THREE.Color(gOld.color(g)))) : [];
@@ -305,9 +301,28 @@ function render(o: Orbit, S: Scene, L: Live, overlay: CanvasRenderingContext2D):
       }
     }
   }
+  // Bake light into the colours: slopes facing the light brighten, slopes away darken, flat ground stays
+  // exactly its theme colour (shade 1), so the map always matches the page palette.
+  if (colArr instanceof Float32Array && posArr instanceof Float32Array) {
+    const cell = gridToWorld(1) - gridToWorld(0);
+    const lx = -0.62; const ly = 0.62; const lz = 0.48;
+    const ln = Math.hypot(lx, ly, lz);
+    const flat = 0.6 + 0.4 * (ly / ln);
+    const h = (i: number, j: number) => posArr[(Math.max(0, Math.min(GRID - 1, j)) * GRID + Math.max(0, Math.min(GRID - 1, i))) * 3 + 1] ?? 0;
+    for (let j = 0; j < GRID; j += 1) {
+      for (let i = 0; i < GRID; i += 1) {
+        const dx = (h(i + 1, j) - h(i - 1, j)) / (2 * cell);
+        const dz = (h(i, j + 1) - h(i, j - 1)) / (2 * cell);
+        const nl = Math.hypot(dx, 1, dz);
+        const dot = Math.max(0, (-dx * lx + ly - dz * lz) / (nl * ln));
+        const shade = Math.max(0.55, Math.min(1.3, (0.6 + 0.4 * dot) / flat));
+        const k = (j * GRID + i) * 3;
+        for (let ch = 0; ch < 3; ch += 1) colArr[k + ch] = Math.min(1, (colArr[k + ch] ?? 0) * shade);
+      }
+    }
+  }
   pos.needsUpdate = true;
   col.needsUpdate = true;
-  S.surface.geometry.computeVertexNormals();
   S.surface.geometry.computeBoundingSphere();
   S.ground.material.color.copy(groundCol);
 
@@ -491,7 +506,7 @@ function step(L: Live, dt: number, reduce: boolean): boolean {
   const months = A.series.frames.length - 1;
   if (L.playing && months > 0) {
     // One continuous clock through the year: month 1 → month N → wraps back into month 1, forever.
-    A.t += dt * MONTHS_PER_SECOND * (reduce ? 0.5 : 1);
+    A.t += dt * MONTHS_PER_SECOND * L.speed * (reduce ? 0.5 : 1);
     if (A.t < 1) A.t = Math.max(A.t, 0);
     if (A.t >= months + 1) A.t -= months;
     const shown = Math.min(months, Math.max(1, Math.round(A.t > months + 0.5 ? 1 : A.t)));
@@ -542,6 +557,8 @@ export interface TerrainProps {
   readonly flyKey: number;
   /** While true the landscape plays the year continuously and loops; `onMonth` reports the month in view. */
   readonly playing: boolean;
+  /** Playback speed multiplier (1 = about one month per second). */
+  readonly speed: number;
   readonly onMonth: (month: number) => void;
 }
 
@@ -578,7 +595,7 @@ export function Terrain(props: TerrainProps) {
     L.anim.colorFrom = L.state.color;
     L.anim.colorMix = 0;
   }
-  Object.assign(L, { td: props.td, state, go: props.go, goUp: props.goUp, onShiftPick: props.onShiftPick, playing: props.playing, onMonth: props.onMonth, theme, kern, max });
+  Object.assign(L, { td: props.td, state, go: props.go, goUp: props.goUp, onShiftPick: props.onShiftPick, playing: props.playing, speed: props.speed, onMonth: props.onMonth, theme, kern, max });
   const { show: showTip, hide: hideTip } = tip;
 
   const kickRef = useRef<() => void>(() => undefined);
