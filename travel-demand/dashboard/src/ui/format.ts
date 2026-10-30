@@ -20,7 +20,7 @@ export const RESOLUTION_LABEL: Readonly<Record<Resolution, string>> = {
   knowledge: "Knowledge", account_fix: "Account fix", defect: "Tool defect", fulfilment: "Fulfilment", approval: "Approval",
   routing: "Transfer", feedback: "Feedback", other: "Other", out_of_scope: "Out of scope",
 };
-export const ORIGIN_LABEL: Readonly<Record<Origin, string>> = { River: "River help menu", "SIM-T": "Direct in SIM", Other: "Email, Slack, templates" };
+export const ORIGIN_LABEL: Readonly<Record<Origin, string>> = { River: "River help menu", "SIM-T": "Direct in SIM", Other: "Direct, email, Slack, templates" };
 export const COVERAGE_LABEL: Readonly<Record<Coverage, string>> = { full: "Fully answered", partial: "Partly answered", none: "Not covered" };
 export const CENSUS_LABEL: Readonly<Record<CensusLabel, string>> = {
   fact_answer: "Content fully answers it", self_serve: "Self-serve once told how", answer_then_action: "Question, then an action",
