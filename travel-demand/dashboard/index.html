@@ -1,0 +1,212 @@
+<meta name="dash-one-writer">
+<style>
+  /* Layout: compact header + filter bar, tabbed pages of chart cards in an auto-fit grid. */
+  .tsd { display: grid; gap: var(--cds-gap-lg); font-family: var(--font-anthropic-sans); color: var(--color-fg); }
+  .tsd-head { display: grid; gap: var(--cds-gap-xs); }
+  .tsd-head h1 { margin: 0; font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); text-wrap: balance; }
+  .tsd-take { margin: 0; max-width: 72ch; color: var(--color-fg-muted); font-size: var(--cds-font-size-body); }
+  .tsd .tsd-take b { color: var(--color-fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tsd-filters { display: flex; flex-wrap: wrap; gap: var(--cds-gap-sm); align-items: end; }
+  .tsd-filters label { display: grid; gap: 2px; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); min-width: 0; }
+  .tsd-filters select { font: inherit; font-size: var(--cds-font-size-body); color: var(--color-fg); background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-xs) var(--cds-pad-sm); max-width: 16rem; }
+  .tsd-btn { font: inherit; font-size: var(--cds-font-size-body); color: var(--color-fg); background: transparent; border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-xs) var(--cds-pad-sm); cursor: pointer; }
+  .tsd-btn:hover { background: var(--color-panel); }
+  .tsd-btn:focus-visible, .tsd-tab:focus-visible, .tsd-filters select:focus-visible, .tsd-search:focus-visible { outline: 2px solid var(--color-fg); outline-offset: 2px; }
+  .tsd-tabs { display: flex; flex-wrap: wrap; gap: var(--cds-gap-xs); border-bottom: 1px solid var(--color-border-line); }
+  .tsd-tab { font: inherit; font-size: var(--cds-font-size-body); color: var(--color-fg-muted); background: none; border: 0; border-bottom: 2px solid transparent; padding: var(--cds-pad-sm) var(--cds-pad-md); cursor: pointer; margin-bottom: -1px; }
+  .tsd-tab[aria-selected="true"] { color: var(--color-fg); border-bottom-color: var(--color-fg); font-weight: 500; }
+  .tsd-page { display: grid; gap: var(--cds-gap-lg); }
+  .tsd-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr)); gap: var(--cds-gap-md); }
+  .tsd-kpi { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-md) var(--cds-pad-lg); display: grid; gap: var(--cds-gap-xs); align-content: start; }
+  .tsd-kpi .lab { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); letter-spacing: .02em; }
+  .tsd-kpi .val { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .tsd-kpi .note { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .tsd-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr)); gap: var(--cds-gap-md); }
+  .tsd-card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); display: grid; gap: var(--cds-gap-sm); align-content: start; min-width: 0; }
+  .tsd-card.wide { grid-column: 1 / -1; }
+  .tsd-card h2 { margin: 0; font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); text-wrap: balance; }
+  .tsd-card .sub { margin: 0; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); max-width: 80ch; }
+  .tsd-chart { position: relative; min-height: 220px; min-width: 0; }
+  .tsd-chart.tall { min-height: 420px; }
+  .tsd-chart svg { display: block; overflow: visible; }
+  .tsd-chart text { fill: var(--color-fg); font-family: var(--font-anthropic-sans); font-size: 12px; }
+  .tsd-chart text.muted { fill: var(--color-fg-muted); }
+  .tsd-chart .row-hit { fill: transparent; cursor: pointer; }
+  .tsd-chart .row-hit:hover { fill: var(--cds-chart-grid); }
+  .tsd-legend { display: flex; flex-wrap: wrap; gap: var(--cds-gap-xs) var(--cds-gap-md); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); margin: 0; padding: 0; list-style: none; }
+  .tsd-legend li { display: inline-flex; align-items: center; gap: 6px; }
+  .tsd-legend .sw { width: 10px; height: 10px; border-radius: 2px; background: var(--cds-chart-muted); display: inline-block; }
+  .tsd-tip { position: absolute; pointer-events: none; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); border-radius: var(--cds-radius); box-shadow: var(--cds-shadow-popover); padding: var(--cds-pad-xs) var(--cds-pad-sm); font-size: var(--cds-font-size-caption); max-width: 18rem; z-index: 2; }
+  .tsd-tip .t { color: var(--cds-text-secondary); margin-bottom: 2px; }
+  .tsd-scroll { max-height: 34rem; overflow: auto; }
+  .tsd-table { width: 100%; border-collapse: collapse; font-size: var(--cds-font-size-caption); font-variant-numeric: tabular-nums; }
+  .tsd-table th { position: sticky; top: 0; background: var(--color-panel); text-align: left; font-weight: 500; color: var(--color-fg-muted); border-bottom: 1px solid var(--color-border-line); padding: var(--cds-pad-xs) var(--cds-pad-sm); white-space: nowrap; }
+  .tsd-table th button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  .tsd-table td { border-bottom: 1px solid var(--color-border-line); padding: var(--cds-pad-xs) var(--cds-pad-sm); vertical-align: top; }
+  .tsd-table td.num, .tsd-table th.num { text-align: right; }
+  .tsd-table td .q { color: var(--color-fg-muted); display: block; max-width: 40ch; }
+  .tsd-table .bar { height: 6px; border-radius: 3px; background: var(--cds-chart-muted); margin-top: 3px; }
+  .tsd-search { font: inherit; font-size: var(--cds-font-size-body); color: var(--color-fg); background: var(--color-bg); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-xs) var(--cds-pad-sm); max-width: 20rem; }
+  .tsd-fail { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: inherit; color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+  .tsd-fail::before { content: ""; width: .375rem; height: .375rem; border-radius: 50%; background: var(--color-bad); }
+  [data-dash-source-state=refreshing] { opacity: .5; transition: opacity var(--cds-dur-slow); }
+  [data-dash-source-state=empty] { color: transparent; }
+  .tsd-pick { display: inline-flex; gap: var(--cds-gap-xs); align-items: center; }
+</style>
+
+<div class="tsd">
+  <header class="tsd-head">
+    <h1>Travel support demand</h1>
+    <p class="tsd-take">Of <b data-draw="k-tickets" data-source="tickets ticket_intents">—</b> travel-support tickets in view, <b data-draw="k-answer" data-source="tickets ticket_intents">—</b> could be fully answered from documentation and <b data-draw="k-agent" data-source="tickets ticket_intents">—</b> are best done by an agent acting in a system. Each ticket counts under its hardest need.</p>
+  </header>
+
+  <div class="tsd-filters" id="filters">
+    <label>Region<select id="f-region" data-draw="f-region" data-source="tickets"></select></label>
+    <label>Filed through<select id="f-origin" data-draw="f-origin" data-source="tickets"></select></label>
+    <label>From month<select id="f-from" data-draw="f-from" data-source="tickets"></select></label>
+    <label>To month<select id="f-to" data-draw="f-to" data-source="tickets"></select></label>
+    <label>Domain<select id="f-domain" data-draw="f-domain" data-source="intents"></select></label>
+    <label>Channel<select id="f-channel" data-draw="f-channel" data-source="ticket_intents"></select></label>
+    <label>Intent<select id="f-intent" data-draw="f-intent" data-source="intents"></select></label>
+    <button class="tsd-btn" id="f-reset" type="button">Reset filters</button>
+  </div>
+
+  <nav class="tsd-tabs" role="tablist" aria-label="Pages">
+    <button class="tsd-tab" role="tab" type="button" data-tab="overview" aria-selected="true">Overview</button>
+    <button class="tsd-tab" role="tab" type="button" data-tab="answerable" aria-selected="false">Answerable</button>
+    <button class="tsd-tab" role="tab" type="button" data-tab="intents" aria-selected="false">All intents</button>
+    <button class="tsd-tab" role="tab" type="button" data-tab="time" aria-selected="false">Time &amp; place</button>
+    <button class="tsd-tab" role="tab" type="button" data-tab="bundles" aria-selected="false">Bundles &amp; journeys</button>
+    <button class="tsd-tab" role="tab" type="button" data-tab="agents" aria-selected="false">Agents &amp; routing</button>
+  </nav>
+
+  <ul class="tsd-legend" aria-label="Channels">
+    <li><span class="sw" data-ch="answer"></span>Answer from docs</li>
+    <li><span class="sw" data-ch="agent_action"></span>Agent action</li>
+    <li><span class="sw" data-ch="intake_and_route"></span>Agent intake &amp; route</li>
+    <li><span class="sw" data-ch="agent_prep_human_decision"></span>Agent preps, human decides</li>
+    <li><span class="sw" data-ch="human_investigation"></span>Human investigation</li>
+    <li><span class="sw" data-ch="engineering_fix"></span>Engineering fix</li>
+  </ul>
+
+  <section class="tsd-page" id="overview" data-page="overview">
+    <div class="tsd-kpis">
+      <div class="tsd-kpi"><span class="lab">Tickets in view</span><span class="val" data-draw="k-tickets" data-source="tickets ticket_intents">—</span><span class="note">Employee demand, after exclusions</span></div>
+      <div class="tsd-kpi"><span class="lab">Fully answerable</span><span class="val" data-draw="k-answer" data-source="tickets ticket_intents">—</span><span class="note">Every need answered by documentation</span></div>
+      <div class="tsd-kpi"><span class="lab">Has an answerable need</span><span class="val" data-draw="k-anyanswer" data-source="tickets ticket_intents">—</span><span class="note">At least one need is answerable</span></div>
+      <div class="tsd-kpi"><span class="lab">Agent action</span><span class="val" data-draw="k-agent" data-source="tickets ticket_intents">—</span><span class="note">Hardest need is a system task</span></div>
+      <div class="tsd-kpi"><span class="lab">No human needed</span><span class="val" data-draw="k-nohuman" data-source="tickets ticket_intents">—</span><span class="note">Answer, agent action or agent intake</span></div>
+      <div class="tsd-kpi"><span class="lab">More than one need</span><span class="val" data-draw="k-multi" data-source="tickets ticket_intents">—</span><span class="note">Tickets carrying 2+ intents</span></div>
+    </div>
+    <div class="tsd-grid">
+      <article class="tsd-card" id="card-channel">
+        <h2>What would best replace the human</h2>
+        <p class="sub">Tickets by the channel of their hardest need. Answer is the documentation set Skywalker targets.</p>
+        <div class="tsd-chart dash-skeleton" data-draw="c-channel" data-source="tickets ticket_intents"></div>
+      </article>
+      <article class="tsd-card" id="card-domain">
+        <h2>Channel mix by domain</h2>
+        <p class="sub">Needs (ticket–intent rows) per domain, split by channel. Click a bar to filter to that domain.</p>
+        <div class="tsd-chart dash-skeleton" data-draw="c-domain" data-source="tickets ticket_intents intents"></div>
+      </article>
+      <article class="tsd-card wide" id="card-monthly">
+        <h2>Tickets per month by channel</h2>
+        <p class="sub">By creation month. November and December 2025 hold only tickets still open into the export, so they are partial. Markers show events seen in the data.</p>
+        <div class="tsd-chart dash-skeleton" data-draw="c-monthly" data-source="tickets ticket_intents"></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="tsd-page" id="answerable" data-page="answerable" hidden>
+    <div class="tsd-grid">
+      <article class="tsd-card" id="card-pareto">
+        <h2>Answerable needs, largest first</h2>
+        <p class="sub">Answerable needs per intent with the running share of all answerable needs. The colored part was asked as a question; the grey part came from tickets that asked for an action but were resolved by an explanation.</p>
+        <div class="tsd-chart tall dash-skeleton" data-draw="c-pareto" data-source="tickets ticket_intents intents"></div>
+      </article>
+      <article class="tsd-card" id="card-scatter">
+        <h2>Volume vs how answerable</h2>
+        <p class="sub">Each dot is an intent with 10+ tickets in view. Up and right means big and mostly answerable; low and right means big but mostly an action, with some hidden answerable demand.</p>
+        <div class="tsd-chart tall dash-skeleton" data-draw="c-scatter" data-source="tickets ticket_intents intents"></div>
+      </article>
+      <article class="tsd-card wide" id="card-anstable">
+        <h2>Answerable intents in detail</h2>
+        <p class="sub">The FAQ backlog. Sort by any column; search matches the intent and its question. Burden columns describe the answerable tickets only.</p>
+        <input class="tsd-search" id="ans-search" type="search" placeholder="Search intents" aria-label="Search intents">
+        <div class="tsd-scroll" data-draw="t-answerable" data-source="tickets ticket_intents intents"></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="tsd-page" id="intents" data-page="intents" hidden>
+    <div class="tsd-grid">
+      <article class="tsd-card wide" id="card-allintents">
+        <h2>Every intent by channel</h2>
+        <p class="sub">Tickets per intent, split by the channel each ticket's need landed in after the resolver's root cause. Click a bar to filter everything to that intent.</p>
+        <div class="tsd-chart tall dash-skeleton" data-draw="c-allintents" data-source="tickets ticket_intents intents"></div>
+      </article>
+      <article class="tsd-card wide" id="card-heat">
+        <h2>What was asked vs what fixed it</h2>
+        <p class="sub">Share of each intent's tickets by resolver root-cause type, for the 25 largest intents in view. A high knowledge share on an action intent is hidden answerable demand.</p>
+        <div class="tsd-chart tall dash-skeleton" data-draw="c-heat" data-source="tickets ticket_intents intents"></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="tsd-page" id="time" data-page="time" hidden>
+    <div class="tsd-grid">
+      <article class="tsd-card wide" id="card-multiples">
+        <h2>Monthly tickets for the 12 largest intents</h2>
+        <p class="sub">One shared scale, so the heights compare across panels. Look for January's migration wave and August's V-Pay jump.</p>
+        <div class="tsd-chart tall dash-skeleton" data-draw="c-multiples" data-source="tickets ticket_intents intents"></div>
+      </article>
+      <article class="tsd-card" id="card-region">
+        <h2>Where each intent comes from</h2>
+        <p class="sub">Share of each intent's tickets by region, for the 20 largest intents in view.</p>
+        <div class="tsd-chart tall dash-skeleton" data-draw="c-region" data-source="tickets ticket_intents intents"></div>
+      </article>
+      <article class="tsd-card" id="card-country">
+        <h2>Country-specific intents</h2>
+        <p class="sub">Intents with 20+ tickets where one country dominates. These answers need jurisdiction-aware content.</p>
+        <div class="tsd-scroll" data-draw="t-country" data-source="tickets ticket_intents intents"></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="tsd-page" id="bundles" data-page="bundles" hidden>
+    <div class="tsd-grid">
+      <article class="tsd-card" id="card-pairs">
+        <h2>Needs that arrive together</h2>
+        <p class="sub">Intent pairs in the same ticket, 5+ tickets in view. Lift above 1 means they co-occur more than chance; P(B|A) is how often A brings B. Good candidates for one page.</p>
+        <div class="tsd-scroll" data-draw="t-pairs" data-source="tickets ticket_intents intents"></div>
+      </article>
+      <article class="tsd-card" id="card-journeys">
+        <h2>What the same person asks next</h2>
+        <p class="sub">Intent of a requester's next ticket within 30 days, all tickets. Pre-computed with pseudonymous requesters, so filters do not apply here.</p>
+        <div class="tsd-chart tall dash-skeleton" data-draw="c-journeys" data-source="transitions intents"></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="tsd-page" id="agents" data-page="agents" hidden>
+    <div class="tsd-grid">
+      <article class="tsd-card wide" id="card-cap">
+        <h2>Agent capabilities by demand</h2>
+        <p class="sub">Needs in the agent-action channel, grouped by the system access an agent would need. Assumes the work is automatable, not that the access exists today.</p>
+        <div class="tsd-chart tall dash-skeleton" data-draw="c-cap" data-source="tickets ticket_intents intents"></div>
+      </article>
+      <article class="tsd-card" id="card-transfer">
+        <h2>Transferred in from the expense team</h2>
+        <p class="sub">Share of each intent's tickets whose root cause is a transfer from the expense team, intents with 15+ tickets. These are travel-policy questions asked at expense time.</p>
+        <div class="tsd-chart tall dash-skeleton" data-draw="c-transfer" data-source="tickets ticket_intents intents"></div>
+      </article>
+      <article class="tsd-card" id="card-origin">
+        <h2>How people filed, by channel</h2>
+        <p class="sub">Share of tickets per filing route by channel. People who skip River's help menu ask answerable questions more often.</p>
+        <div class="tsd-chart dash-skeleton" data-draw="c-origin" data-source="tickets ticket_intents"></div>
+      </article>
+    </div>
+  </section>
+</div>
+
+<script src="app.js"></script>

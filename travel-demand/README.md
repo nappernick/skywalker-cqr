@@ -86,3 +86,11 @@ python3 scripts/analyze.py                    # -> reports/*.csv
 ```
 
 Requires `pandas` and `openpyxl`. Findings are in [`FINDINGS.md`](FINDINGS.md).
+
+## Dashboard
+
+`dashboard/index.html` and `dashboard/app.js` are the page of the private **Travel Support Demand** dashboard artifact. It reads four de-identified JSON files from `scripts/export_dashboard.py` (`reports/dashboard/`). Those files hold no titles, ticket IDs, aliases or requester keys. Cross-ticket journeys ship only as an aggregate. Every filter is applied in the browser.
+
+```bash
+python3 scripts/export_dashboard.py           # -> reports/dashboard/*.json
+```
