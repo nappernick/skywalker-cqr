@@ -1,0 +1,251 @@
+intent_id,country,tickets
+air_booking_help,United States,99
+air_booking_help,United Kingdom,28
+air_booking_help,Germany,20
+air_booking_help,India,10
+air_booking_help,China,8
+air_booking_help,Luxembourg,8
+air_booking_help,Australia,6
+air_booking_help,Japan,6
+air_booking_help,Italy,5
+bahncard,Germany,606
+bahncard,United States,26
+bahncard,United Arab Emirates,5
+booking_change_help,United States,18
+booking_change_help,United Kingdom,6
+booking_invoice,United States,33
+booking_invoice,Germany,16
+business_personal_combined,United States,38
+business_personal_combined,India,6
+cabin_exception,United States,16
+cancelled_flight_expense,United States,68
+cancelled_flight_expense,Germany,6
+car_booking_help,United States,64
+car_booking_help,Germany,40
+car_booking_help,Italy,10
+car_booking_help,United Kingdom,10
+car_booking_help,France,6
+car_damage_accident,United States,506
+car_damage_accident,Canada,29
+car_damage_accident,United Kingdom,21
+car_damage_accident,Germany,20
+car_fines_violations,Luxembourg,10
+car_fines_violations,Germany,9
+car_insurance,United States,71
+car_insurance,Germany,6
+car_insurance,United Kingdom,5
+car_rental_charges,Germany,30
+car_rental_charges,United States,21
+car_rental_charges,United Kingdom,5
+car_rental_policy,United States,54
+car_rental_policy,Germany,25
+car_rental_policy,India,8
+car_rental_policy,United Kingdom,5
+corp_card,United States,30
+corp_card,Germany,9
+corp_card,United Kingdom,8
+corp_card,Italy,6
+corp_card,Luxembourg,5
+corp_card,Spain,5
+corporate_housing,France,58
+corporate_housing,United States,43
+corporate_housing,United Kingdom,24
+corporate_housing,Germany,23
+corporate_housing,Italy,11
+corporate_housing,Spain,9
+cost_center,United States,23
+cost_center,India,9
+cost_center,Spain,7
+cost_center,Australia,5
+expense_how_to,United States,52
+expense_how_to,India,18
+expense_how_to,Germany,12
+expense_how_to,United Kingdom,12
+expense_how_to,Japan,7
+expense_report_returned,United States,63
+expense_report_returned,Germany,13
+expense_report_returned,India,11
+expense_report_returned,France,8
+expense_report_returned,United Kingdom,6
+expense_report_returned,Canada,5
+fare_quote,United States,53
+fare_quote,India,8
+flight_credits,United States,65
+flight_disruption,United States,9
+flight_disruption,United Kingdom,6
+group_travel,United States,7
+group_travel,Germany,5
+hotel_booking_billing,United States,55
+hotel_booking_billing,United Kingdom,12
+hotel_booking_billing,Germany,10
+hotel_booking_billing,India,10
+hotel_no_show_cancel,United States,38
+hotel_no_show_cancel,Germany,9
+hotel_no_show_cancel,United Kingdom,7
+hotel_no_show_cancel,Luxembourg,6
+hotel_policy,United States,9
+hotel_policy,India,5
+loyalty_programs,United States,57
+loyalty_programs,Germany,19
+loyalty_programs,United Kingdom,11
+loyalty_programs,France,9
+loyalty_programs,Australia,6
+loyalty_programs,Italy,6
+medical_accommodation,United States,49
+medical_accommodation,United Kingdom,12
+medical_accommodation,Germany,9
+medical_accommodation,Luxembourg,5
+medical_accommodation,Spain,5
+non_employee_travel,United States,28
+non_employee_travel,India,5
+obt_access,United States,666
+obt_access,India,157
+obt_access,United Kingdom,85
+obt_access,Germany,66
+obt_access,Spain,59
+obt_access,Australia,38
+obt_access,Japan,34
+obt_access,Canada,30
+obt_access,France,25
+obt_access,Italy,25
+obt_access,Luxembourg,19
+obt_access,Brazil,18
+obt_access,China,17
+obt_access,Singapore,15
+obt_access,Ireland,14
+obt_access,United Arab Emirates,13
+obt_access,Poland,11
+obt_access,Saudi Arabia,8
+obt_access,Mexico,7
+obt_access,South Africa,5
+obt_access,Taiwan,5
+obt_airline_not_bookable,United States,32
+obt_airline_not_bookable,United Kingdom,6
+obt_arranger_delegate,United States,31
+obt_arranger_delegate,Germany,7
+obt_arranger_delegate,United Kingdom,5
+obt_booking_error,United States,130
+obt_booking_error,United Kingdom,32
+obt_booking_error,Germany,27
+obt_booking_error,Japan,19
+obt_booking_error,France,15
+obt_booking_error,Ireland,11
+obt_booking_error,Luxembourg,11
+obt_booking_error,Brazil,10
+obt_booking_error,India,10
+obt_booking_error,Australia,8
+obt_booking_error,Spain,8
+obt_central_bill_cvv,United States,26
+obt_central_bill_cvv,United Kingdom,11
+obt_central_bill_cvv,Germany,9
+obt_feedback,United States,34
+obt_feedback,Germany,10
+obt_feedback,United Kingdom,6
+obt_feedback,France,5
+obt_hotel_booking,United States,62
+obt_hotel_booking,United Kingdom,20
+obt_hotel_booking,Germany,15
+obt_hotel_booking,Australia,7
+obt_hotel_booking,Luxembourg,7
+obt_how_to,United States,36
+obt_how_to,Germany,7
+obt_legacy_bookings,United States,38
+obt_legacy_bookings,Germany,9
+obt_legacy_bookings,United Kingdom,6
+obt_payment_method,United States,160
+obt_payment_method,Germany,61
+obt_payment_method,United Kingdom,58
+obt_payment_method,Italy,28
+obt_payment_method,Ireland,26
+obt_payment_method,Luxembourg,22
+obt_payment_method,Poland,20
+obt_payment_method,France,17
+obt_payment_method,Singapore,11
+obt_payment_method,Canada,10
+obt_payment_method,Spain,9
+obt_payment_method,Brazil,5
+obt_payment_method,Hong Kong,5
+obt_payment_method,Netherlands,5
+obt_pricing_error,United States,63
+obt_pricing_error,United Kingdom,19
+obt_pricing_error,Germany,14
+obt_pricing_error,Ireland,7
+obt_pricing_error,Luxembourg,7
+obt_pricing_error,Australia,5
+obt_profile_data,United States,104
+obt_profile_data,United Kingdom,20
+obt_profile_data,Germany,16
+obt_profile_data,India,16
+obt_profile_data,Australia,7
+obt_profile_data,Luxembourg,7
+obt_profile_data,China,5
+obt_profile_data,Japan,5
+obt_profile_lifecycle,United States,162
+obt_profile_lifecycle,India,41
+obt_profile_lifecycle,United Kingdom,10
+obt_profile_lifecycle,Canada,8
+obt_profile_lifecycle,Germany,7
+obt_profile_name,United States,95
+obt_profile_name,Germany,17
+obt_profile_name,United Kingdom,15
+obt_profile_name,Australia,11
+obt_profile_name,Singapore,7
+obt_profile_name,Japan,5
+oop_cabin_upgrade,United States,87
+oop_cabin_upgrade,United Kingdom,14
+oop_cabin_upgrade,Germany,6
+oop_exception_approval,United States,75
+oop_exception_approval,India,53
+oop_exception_approval,Germany,23
+oop_exception_approval,United Kingdom,15
+oop_exception_approval,France,8
+oop_exception_approval,Italy,8
+oop_exception_approval,Luxembourg,7
+oop_exception_approval,Poland,6
+oop_exception_approval,Spain,6
+paid_upgrade_personal,United States,68
+paid_upgrade_personal,United Kingdom,12
+pea_eligibility,United States,147
+pea_eligibility,India,48
+pea_eligibility,Australia,40
+pea_eligibility,Singapore,11
+pea_eligibility,United Arab Emirates,11
+pea_eligibility,China,9
+pea_eligibility,United Kingdom,8
+pea_eligibility,Israel,7
+pea_eligibility,Brazil,6
+rail_booking_help,Germany,50
+rail_booking_help,France,24
+rail_booking_help,United Kingdom,18
+rail_booking_help,United States,12
+receipt_policy,United States,6
+seat_fees,United States,42
+seat_fees,United Kingdom,9
+seat_fees,India,6
+sncf_card,France,113
+sncf_card,Germany,30
+tmc_service_complaint,United States,16
+tmc_service_complaint,United Kingdom,5
+trail_code,United States,19
+travel_history_report,United States,10
+travel_history_report,United Kingdom,6
+travel_policy_general,United States,34
+travel_policy_general,India,21
+travel_policy_general,United Kingdom,6
+travel_time,United States,10
+tripbam_rebooking,United States,6
+visa_immigration,India,9
+visa_immigration,United States,5
+vpay_access,United States,143
+vpay_access,France,22
+vpay_access,Germany,19
+vpay_access,United Kingdom,10
+vpay_access,Italy,6
+vpay_access,South Africa,6
+vpay_failure,United States,18
+vpay_failure,Germany,14
+vpay_request,United States,121
+vpay_request,Germany,51
+vpay_request,France,22
+vpay_request,United Kingdom,16
+vpay_request,Poland,7

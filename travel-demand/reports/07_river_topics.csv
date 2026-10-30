@@ -1,0 +1,62 @@
+river_topic,tickets,resolved_as_knowledge,resolved_as_account_fix,resolved_as_defect,days_p50
+New Booking Tool -  Access Issues,794,0.139,0.758,0.084,2.000
+Car Damage,477,0.000,0.000,0.000,0.000
+BahnCard50-1class Request,362,0.000,0.000,0.000,1.000
+New Booking Tool - Report Payment Issues Not Listed on River,237,0.211,0.430,0.160,2.000
+Access Request to V-Pay Form,203,0.000,0.005,0.000,0.000
+Booking Tool -  Access Issues,203,0.241,0.680,0.044,4.000
+RIF Profile Reactivate,190,0.058,0.942,0.000,3.000
+PEA List,184,0.011,0.005,0.000,5.543
+Corporate Housing Request,165,0.000,0.000,0.000,4.000
+New Booking Tool - Flight Related Issue Not on River,133,0.203,0.045,0.647,5.000
+New Travel System - Name Adjustment,130,0.100,0.677,0.115,4.000
+"New Travel System - Unable To Complete A Booking Due To A ""Third-Party Booking Error""",104,0.125,0.288,0.288,3.936
+SNCF Discount Card Request,102,0.000,0.000,0.000,0.033
+Error in the Self-Booking Tool,94,0.085,0.191,0.340,4.000
+Exception Approvals for Out-of-Policy Expenses,89,0.180,0.000,0.000,6.000
+New Travel System - Profile Data Migration Issues,85,0.141,0.647,0.176,1.000
+Out of Policy Expense - Cabin upgrade,85,0.271,0.012,0.000,3.000
+Air Upgrade Paid By Traveler,83,0.313,0.012,0.036,4.000
+V-Pay Form - Booking travel,76,0.013,0.039,0.000,2.122
+BahnCard50-2class Request,74,0.000,0.000,0.000,1.000
+"New Booking Tool - Unable To Complete A Booking Due To A ""Third-Party Booking Error""",68,0.132,0.176,0.485,4.938
+BahnCard50-1st Class Request,64,0.000,0.000,0.000,5.000
+Preferred Car Vendors,64,0.078,0.016,0.047,4.922
+New Booking Tool - Rental Car Assistance,62,0.097,0.016,0.371,5.000
+Out of Policy Approval - FinOps,57,0.193,0.000,0.000,4.000
+Issue in the New Booking Tool - Rail,54,0.148,0.056,0.444,6.000
+New Travel System - TripSource Bookings In The New Travel System,53,0.566,0.226,0.132,2.000
+New Booking Tool - Report Pricing Mistakes or Booking Errors,53,0.132,0.075,0.453,6.723
+BahnCard25-1class Request,52,0.000,0.000,0.000,1.000
+How to Expense Cancelled Flights,51,0.235,0.000,0.000,4.000
+New Travel System - Feedback or Enhancement Request,50,0.060,0.060,0.240,3.000
+"New Booking Tool - Content, Navigation, User Experience",44,0.227,0.205,0.318,6.986
+New Booking Tool - Amazon Central Bill's CVV,41,0.122,0.683,0.098,3.000
+Issue in the New Booking Tool - Hotel Issue Not Mentioned on River,38,0.158,0.079,0.737,5.000
+New Booking Tool - How To Apply Unused Flight Credits,36,0.194,0.111,0.528,4.000
+SNCF Discount Card - {{opstions}},34,0.000,0.029,0.000,10.500
+New Booking Tool - Loyalty Program Assistance - Flights,33,0.030,0.394,0.455,9.000
+Medical Accommodation,30,0.033,0.200,0.067,2.500
+Quote For Past Dated Flights - Default,29,0.207,0.000,0.000,5.000
+Out of Policy Expense - Preferred seating,28,0.286,0.000,0.000,6.000
+V-Pay Form - Requesting travel,26,0.000,0.000,0.000,3.542
+New Booking Tool - Payments,25,0.040,0.600,0.240,3.000
+Hotel Issue in the New Booking Tool - Report Pricing Mistakes or Booking Errors,25,0.120,0.000,0.400,3.000
+Hotel No-Show,22,0.000,0.000,0.000,18.000
+New Booking Tool - Profile Assistance,22,0.000,0.909,0.091,3.000
+Quote For Past Dated Flights - Purchase of airfare out of the Amazon Travel Program (quote for lowest logical fare),21,0.476,0.000,0.000,2.000
+Hotel Issue in the New Booking Tool - Hotel Showing No Availability,21,0.048,0.000,0.143,3.312
+Incorrect Charges,20,0.000,0.000,0.000,13.500
+Payment Issue in the Booking Tool,19,0.211,0.526,0.158,3.005
+Adding Companion To Business Trip,17,0.824,0.000,0.000,2.009
+New Booking Tool - Loyalty Program Assistance - Hotel,15,0.000,0.200,0.267,4.000
+Out of Policy Expense - Cabin Upgrade & Preferred seating,15,0.400,0.000,0.000,3.315
+BahnCard100-1class Request,14,0.000,0.000,0.000,4.000
+USA,14,0.071,0.000,0.000,6.000
+New Booking Tool - TripSource Bookings In The New Travel System,13,0.462,0.154,0.231,4.000
+"Issue in the New Booking Tool - Unable To Complete A Booking Due To A ""Third-Party Booking Error""",13,0.000,0.077,0.846,1.000
+BahnCard50-2nd Class Request,13,0.000,0.000,0.000,7.000
+PEA2,13,0.000,0.077,0.077,3.000
+BahnCard100-1st Class Request,11,0.000,0.000,0.000,9.000
+BahnCard25-2class Request,10,0.000,0.000,0.000,3.118
+New Booking Tool - Loyalty Program Assistance - Rail,10,0.100,0.000,0.300,15.000

@@ -1,0 +1,21 @@
+label	intent_id
+BahnCard Request	bahncard
+Corporate Housing Rqst	corporate_housing
+PEALIst	pea_eligibility
+Car Accidents	car_damage_accident
+Traffic Fines	car_fines_violations
+Hotel No Show	hotel_no_show_cancel
+Cost_Center_Change	cost_center
+DLS	medical_accommodation
+SN - Legal Name	obt_profile_name
+SN - HRFeed Name	obt_profile_name
+SN - Loyalty/Membership	loyalty_programs
+SN - FOP Question or Issue	obt_payment_method
+SN - FOP Question/issue/failure	obt_payment_method
+SN - Pricing Errors	obt_pricing_error
+SN - Expense Reject	expense_report_returned
+SN - Hotel Error	obt_hotel_booking
+SN - Car Error	car_booking_help
+Feature Request	obt_feedback
+TMC Feedback	tmc_service_complaint
+SIXT Errors	car_rental_charges

@@ -1,0 +1,9 @@
+measure,value
+demand tickets,7988
+requesters,6730
+requesters with >1 ticket,824
+tickets from requesters with >1 ticket,2082
+tickets preceded by same requester <=7d,522
+tickets preceded by same requester <=30d,798
+...of which share an intent with the prior ticket,361
+tickets from requesters with >=10 tickets (likely arrangers/coordinators),169

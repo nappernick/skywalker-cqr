@@ -1,0 +1,78 @@
+root_cause,root_cause_norm,resolution_type,fallback_intent
+ATO - Profile Issue,Profile / access,account_fix,obt_access
+OBT/APP - Profile Missing or Sync Issue,Profile / access,account_fix,obt_access
+Profile,Profile / access,account_fix,obt_access
+Travel Process - Tool Access,Profile / access,account_fix,obt_access
+Travel Process - HR Feed Errors,Profile / access,account_fix,obt_access
+ATO - Transfer to ATO,Profile / access,routing,obt_access
+ATO - Navigation,Navigation / how-to,knowledge,obt_how_to
+OBT/APP - Navigation or TripSource,Navigation / how-to,knowledge,obt_how_to
+User Interface/Navigation,Navigation / how-to,knowledge,obt_how_to
+Navigation,Navigation / how-to,knowledge,obt_how_to
+ATO - Bug,Tool defect,defect,obt_booking_error
+ATO - Glitch/one time random,Tool defect,defect,obt_booking_error
+ATO - Content Issue,Tool content gap,defect,obt_booking_error
+OBT/APP - Content Availability/Discrepancy,Tool content gap,defect,obt_booking_error
+Content Missing,Tool content gap,defect,obt_booking_error
+OBT/APP - BCD Tech Ticket Created,Tool defect,defect,obt_booking_error
+OBT/APP - Tech Ticket Created,Tool defect,defect,obt_booking_error
+ATO - Policy Error,Tool policy configuration,defect,obt_booking_error
+ATO - Enhancement,Enhancement / feedback,feedback,obt_feedback
+ATO - Payments,Payments / FOP,account_fix,obt_payment_method
+FOP,Payments / FOP,account_fix,obt_payment_method
+ATO - Invoice/Itin,Invoice / itinerary,knowledge,booking_invoice
+Invoice/Itinerary,Invoice / itinerary,knowledge,booking_invoice
+Travel Booking - Rail Discount Card Application,Rail discount card,fulfilment,bahncard
+BC Card Request,Rail discount card,fulfilment,bahncard
+SNCF,Rail discount card,fulfilment,sncf_card
+Travel Booking - Rail Booking or Billing Inquiry,Rail booking,fulfilment,rail_booking_help
+Rail,Rail booking,fulfilment,rail_booking_help
+Travel Process - Rail Exception,Policy exception,approval,rail_class_policy
+Travel Expense - Transfer from Expense Team,Transferred from expense team,routing,expense_how_to
+Car Incidents - Avis US/Canada only - Auto close,Car incident,fulfilment,car_damage_accident
+Car Damage Claims or Violations,Car incident,fulfilment,car_damage_accident
+Travel Process - Car Damage Claims/Violations,Car incident,fulfilment,car_damage_accident
+Car,Car booking / billing,fulfilment,car_booking_help
+Travel Booking - Car Booking or Car Billing Inquiry,Car booking / billing,fulfilment,car_booking_help
+Travel Process - Car Upgrades,Policy exception,approval,car_rental_policy
+Travel Process - VPay Info or Request,V-Pay,fulfilment,vpay_request
+Travel Booking - VPay Inquiry or Issue,V-Pay,fulfilment,vpay_request
+Group Process,Group travel,fulfilment,group_travel
+Travel Booking - Hotel Booking or Billing Inquiry,Hotel booking / billing,fulfilment,hotel_booking_billing
+Hotel,Hotel booking / billing,fulfilment,hotel_booking_billing
+hotel,Hotel booking / billing,fulfilment,hotel_booking_billing
+Travel Booking - Hotel No Show/Booking not Cancelled,Hotel no-show,fulfilment,hotel_no_show_cancel
+Hotel No Show,Hotel no-show,fulfilment,hotel_no_show_cancel
+Travel Process - Hotel Upgrades,Policy exception,approval,hotel_policy
+Hotel review for CAT managers,Internal,internal,internal_admin
+Travel Booking - Air Booking or Billing Inquiry,Air booking / billing,fulfilment,air_booking_help
+Airline,Air booking / billing,fulfilment,air_booking_help
+Exchange or unused tickets,Unused tickets,knowledge,flight_credits
+Travel Process - PEA Inquiry or Issue,PEA,approval,pea_eligibility
+Travel Process - Cabin Exceptions,Policy exception,approval,cabin_exception
+Travel Process - DLS Inquiry or Issue,Medical accommodation,approval,medical_accommodation
+Travel Process - Expense Reporting or Travel Policy,Expense / policy guidance,knowledge,expense_how_to
+Travel Process - Expense Process,Expense / policy guidance,knowledge,expense_how_to
+Travel Process -Expense Process,Expense / policy guidance,knowledge,expense_how_to
+Travel Process - Personal Component or Paid Upgrade Process,Expense / policy guidance,knowledge,business_personal_combined
+Travel Process - Companion or Personal Trip Add on,Expense / policy guidance,knowledge,business_personal_combined
+Travel Process - Cost Center Issue,Cost center,knowledge,cost_center
+Travel Process - Mobility/Visa/Amazon Trail/Tax,Mobility / visa / trail,knowledge,trail_code
+Travel Policy - Travel Related/Travel Insurance,Expense / policy guidance,knowledge,travel_policy_general
+Travel Process - Policy Questions (non-T&E),Expense / policy guidance,knowledge,travel_policy_general
+Travel Process - Travel Program Related,Expense / policy guidance,knowledge,travel_policy_general
+Travel Process - Travel Related,Expense / policy guidance,knowledge,travel_policy_general
+Travel Policy - Non-Travel Related,Out of scope,out_of_scope,out_of_scope
+Travel Process - Non -Travel Related,Out of scope,out_of_scope,out_of_scope
+Service Feedback - TMC or Travel Program,Service feedback,feedback,tmc_service_complaint
+Service Feedback - Service/Vendor Issues/Promo,Vendor / promo,feedback,loyalty_programs
+Travel Process - Service/Vendor Issues/Promo,Vendor / promo,feedback,loyalty_programs
+Travel related Inquiry - Report Request,Reporting,fulfilment,travel_history_report
+Travel Process - Reporting Request,Reporting,fulfilment,travel_history_report
+OTIS,Reporting,fulfilment,travel_history_report
+Travel Process - Active Booking Referral,Active booking,fulfilment,booking_change_help
+Travel Booking - Active Booking Referral,Active booking,fulfilment,booking_change_help
+Others - Ticket No Detail/Empty/Duplicate or Test,No detail / duplicate / test,junk,unclear
+Deployment - Testing/QA,No detail / duplicate / test,junk,internal_admin
+Others - Other Inquiries,Other,other,unclear
+Resolved by automation rule.,Automation,other,unclear

@@ -1,0 +1,67 @@
+intent_id	tier	pattern	unless
+obt_access	1	access issues|booking tool access|tool access|no access to	
+obt_booking_error	1	third-party booking error|error in the self-booking tool	
+air_booking_help	1	flight related issue not on river|new booking tool - air$	
+internal_admin	1	^membership request|queue jump|^at&e internal ticket|important update|category update|classification update|^(\[workflow feedback\] - )?test( test)*$|^test\b|pea - test|testing|^nevermind$|shannon's request|hotel (guest )?review|^hotel review for cat|feedback for cat managers	
+obt_central_bill_cvv	1	cvv|ccv	
+bahncard	1	bahn ?card|\bbc ?(25|50|100)\b|bc application|deutschland-?ticket	
+sncf_card	1	sncf|carte libert|liberty card|scnf	
+vpay_access	1	(v-?\s?pay|vpay|virtual pay|vp form|v form|vform|individual hotel and car|indivisual hotel|payment exception form).{0,40}(access|permission|denied|grant)|(access|permission|denied|grant).{0,40}(v-?\s?pay|vpay|virtual pay|vp form|vform|individual hotel and car)	
+vpay_failure	1	(v-?\s?pay|vpay|virtual pay|virtual card|vform|v form).{0,40}(fail|error|declin|reject|not working|broken|404|deprecated|wrong link|cannot|cant|can't|does not|issue)|(fail|error|declin|reject|broken).{0,30}(v-?\s?pay|vpay|virtual pay|virtual card)|vpay failure	
+vpay_request	1	v-?\s?pay|vpay|virtual pay|virtual card|virtual credit card|vform|individual hotel and car|indivisual hotel|pre-?pa(y|id|ying) hotel|prepaid hotel|direct pay|book (my )?hotel directly from amazon|people without a credit card|don't have a credit card	access|permission|denied|grant|fail|error|declin|not working|broken|404|deprecated|wrong link
+trail_code	1	trail|trial code|travel code request|travel approval request	
+visa_immigration	1	visa\b|immigration|invitation letter|apec|letters? (for|request)|biometric|work authorization|globaladvantage|go work	
+travel_history_report	1	travel (history|records|reporting|report)|list of ?past flights|list of travel|travel details for|spend report|ticket history|expense report for visa|copy of all travel|travel records|access to company reports|full list of travel|retrieve amazon travel|reporting request|t&e audit|travel expense history	
+travel_time	1	travel time|hours traveled|travel hours|clocking travel|travel day status	
+corporate_housing	1	corp(orate)? ?housing|serviced apartment|long[- ]?term|apartment|3sixty|graebel|relocation hotel|add new hotel for relocation|short term assign	
+car_fines_violations	1	speeding|parking|\bfines?\b|amende|violation|summons|plaque|registration number|\btoll|pec charges|traffic	
+car_damage_accident	1	car damage|accident|damage|sedgwick|co poisoning|vehicle incident|car incident	
+car_insurance	1	(\bcars?\b|rental|rent a car|\bavis\b|\bsixt\b|europcar|enterprise).{0,40}(insurance|ldw|cdw|liability|\bpai\b|protection|issurance)|(insurance|ldw|cdw|liability).{0,40}(\bcars?\b|rental|rent a car|\bavis\b|\bsixt\b|europcar|enterprise)|car insurance	
+car_rental_policy	1	preferred car vendor|(\bcars?\b|rental|rent a car|\bavis\b|\bsixt\b|europcar|enterprise).{0,40}(upgrad|category|car type|policy|allow|weekend|approval|reject|reimburs|expense|out of policy|exception|justification|limitation)|(upgrad|policy|approval|reimburs|expense|exception).{0,30}(\bcars?\b|rental|rent a car|\bavis\b|\bsixt\b|europcar|enterprise)|car upgrade|car category	
+car_rental_charges	1	(\bcars?\b|rental|rent a car|\bavis\b|\bsixt\b|europcar|enterprise).{0,50}(late|charg|fee|invoice|receipt|debit|overcharg|dispute|refund|credit note|billing|missed payment|pricing)|late (fee|return)|overcharg|^incorrect charges$	
+car_booking_help	1	car rental|rental car|rent a car|\bavis\b|\bsixt\b|europcar|\bcar hire|booking car|car booking|rental car assistance	charg|fee|insurance|reject|expens|reimburs|upgrad|polic|late|damage|accident
+hotel_no_show_cancel	1	no.?show|(cancel\w*).{0,60}(still|charg|refund|not received|rebooked|active)|charg\w*.{0,40}cancel|not (actually )?cancel|duplicate hotel|double booking of hotel|hotel cancellation (charges|refund)|hotel canceled|unauthorized charge	
+medical_accommodation	1	medical|\bdls\b|disabilit|pregnan|tall employee|accessible room|accessibility|accomodation request form|air travel accommodation request|physical limitation|leg ?room due	
+cabin_exception	1	cabin exception|business class.{0,40}(approval|exception|request)|(approval|exception|request).{0,40}business class|route not in pea2|pea2 exception|exception for pea2|premium economy.{0,30}exception|pea.{0,10}exception|exception.{0,30}premium economy|upgrade request|business class approval|need approval for upgrade|exception travel|non-medical exception|automatic upgrade|request for upgrade	\brail|\btrains?\b|eurostar|amtrak|\bdb\b
+pea_eligibility	1	\bpea\b|pea ?list|pealist|pea2|premium economy|premium travel|econ premium|long.haul|cabin (selection|inquiry)|premium economy accommodation	
+paid_upgrade_personal	1	personal (upgrade|component|deviation)|paid upgrade|upgrade paid by|upgrade (cost|differential|charge)|out-of-pocket amount to upgrade|\$0 cost upgrades|choice upgrade|personal upgrade	
+oop_cabin_upgrade	1	out of policy expense - cabin upgrade|cabin upgrade|(upgrade|first/business class|business class|non coach).{0,40}(expense|reimburs|report|detected)|(expense|reimburs).{0,40}upgrade|flight upgrade|eupgrade	\brail|\btrains?\b|eurostar|amtrak|\bdb\b|hotel|room
+seat_fees	1	\bseats?\b|preferred seating|extra legroom	\brail|\btrains?\b|eurostar|amtrak|\bdb\b
+flight_credits	1	unused|e-?credit|flight credit|airline credit|travel credit|credt|voucher|credit left in the old tool|credit booking|credit error|ba unused|exchange	credit card
+cancelled_flight_expense	1	cancel+ed flights?|flight cancel|expense cancelled flights|cancel+ed (plane|trip|flight|ticket)|(refund|reimburs).{0,40}cancel|cancel.{0,40}(refund|reimburs)|non-?refundable|cancellation (reciept|receipt|reimburs|penalty)|ticket refund|flight change reimburs	rebook
+fare_quote	1	quote|lowest logical|comparison fare|cheapest economy|economy (class|fare|ticket)s? (price|quote|of service|fare)|fare confirmation|economy fare to expense|airfare price\s+confirm|economy ticket price	
+tripbam_rebooking	1	tripbam	
+flight_disruption	1	delay|compensation|baggage|luggage|passenger rights|lost (item|personal)|stranded|airspace|war in the middle east|middle east	
+loyalty_programs	1	loyalty|status match|fast ?track|gold status|platinum|bonvoy|promo|frequent|bahn ?bonus|delta status|hyatt codes|\boffer\b|elite|\bpoints\b	
+travel_insurance	1	insurance|isos|illness|duty of care	\bcars?\b|rental|rent a car|avis|sixt|enterprise|europcar
+receipt_policy	1	receipt policy|receipts? (now )?required|no receipt|missing tax documentation|vat information	
+booking_invoice	1	invoice|receipt|reciep|folio|itinerar|e-?ticket|missing bill|documentation emailed	receipt policy
+cost_center	1	cost cent|cost centre|\bcc\b|cross charge|reclass|project code|gl company code|alt cost|charged to wrong|change approver	
+business_personal_combined	1	personal (trip|travel|leg|extension|time|side trip)|business.{0,25}personal|personal.{0,25}business|companion|alternate.?cit|different (city|airport)|non-?base city|multi-?city flight policy|extend(ed)? (my |the )?(trip|stay|business)|extension|extended trip|spouse|family|unplanned days|different cities|multiple locations|stay between	
+non_employee_travel	1	guest|candidate|\bintern\b|contractor|contingent|non-?amazonian|non-?employee|alumni|speaker|pre-?employment|for (a |the )?(new hire|new employee|joinee)|new hire travel|booking (air tickets and hotel )?for new hire|travel booking: new employee|before his join|for a client|bridge fellow|recruitment stream|icims	
+obt_profile_lifecycle	1	rehire|\brif\b|reactivat|re-?activate|reinstate|restore my|new hire|just joined|new joiner|onboarded|alias change|email change|internal transfer|relocat|contractor to fte|yellow badge|terminated|former employee|deactivated|revoked|ga to nonga|post reloaction|account deleted	
+obt_arranger_delegate	1	arranger|delegat|on behalf|add.{0,30}travell?er|\beas?\b|executive assistant|for (my )?(leader|boss|director|manager|exec|l8)|leaders profile|for executive|book.{0,20}for (him|her)|travel for prime	
+obt_profile_name	1	name adjustment|\bname\b|surname|passport|middle name|suffix|legal|polish letters|character|2 character|preferred name	
+obt_profile_data	1	profile data migration|profile assistance|profile|sync|hr ?feed|employee designation|known traveler|migrat|manager name|wrong(ly)? identifies|green/badge|location incorrect	reactivat|\brif\b|name adjustment|tripsource bookings|loyalty
+obt_legacy_bookings	1	tripsource bookings in the new travel system|legacy bcd|old tool|made on legacy|in progress trip|trip booked on tripsource|remove cancelled booking from tripsource|retain travel bookings	
+obt_airline_not_bookable	1	\bwn\b|southwest|ryanair|easyjet|wizz|alaska|allegiant|\bgol\b|vueling|iberia|aeromexico|volaris|codeshare|code share|restricted airlines|china'?s airlines|hainan|\bbta\b	
+obt_hotel_booking	1	hotel showing no availability|hotel issue not mentioned on river|hotel.{0,30}(availab|not available|no search|offered)|no hotel|hotel guarantee|unable to book hotel|can't book hotel|hotel booking not possible|book hotel	
+obt_pricing_error	1	pricing mistakes|booking errors|pric(e|ing)|fare (expired|discrepan)|expensive|cheaper|higher (fares|hotel costs)|wrong rates|rate has expired|excessive	
+obt_feedback	1	feedback or enhancement|enhancement|feature request|feedback (spotnana|regarding)|terrible app|frustrating	
+obt_how_to	1	content, navigation|navigation|moving segments|disable travel notifications|pop-up|trip selection|travel calendar|questions? regarding spotnana functionality	
+obt_payment_method	1	payment issues not listed|new booking tool - payments|payment issue in the booking tool|payment and expense|form of payment|central (bill|card|billing|credit)|centrali[sz]ed|(corp(orate)?|company|amex|citi\w*|credit|travel|airline|default|personal|private|wrong|incorrect) ?(credit )?card.{0,40}(not|declin|missing|accept|charg|use|option|blocked|fell off|deleted|tokeni|showing|visible|available|update|profile|spotnana)|card declined|payment (method|error|issue|type|card|not)|split payment|unable to proceed to airline payment|payment methods|declined	
+corp_card	1	help needed for card declined|corp(orate)? card|travel card|t&e card|citi|p-card|card (expired|renew|lost|stolen|application|reactivat|query|issue)|lost or stolen card|re-activate card|outstanding .*transactions|card transaction|transactions not in concur|card payment inquiry|paymentnet|credit card statement|card queries	
+group_travel	1	group travel|group booking|for 10 person|team car rental|group hotel	
+oop_exception_approval	1	out.of.policy (approval|expense|exception|flight|travel)|exception approvals for out-of-policy|out of policy approval|finops|exception (request|needed|review|for)|approval (for|request|needed|from|of)|need approval|seek approval|travel approval|policy exception|travel exception|book direct|hotel approval|approve	cabin upgrade|preferred seating
+expense_report_returned	1	returned|rejected|reject|sent back|send back|audit|report.{0,20}(id|#|number)|expense report (issue|rejection|troubleshoot)|er id|claim submission	
+tmc_service_complaint	1	\bbcd\b.{0,40}(complain|poor|mistake|error|not respond|service|failures|unhelpful)|complain|poor (service|experience|tmc)|formal complaint|service agent|unprofessional|travel agency mistake|agent unhelpful|referal process	
+hotel_policy	1	hotel rate|daily (hotel|lodging)|lodging maximum|in-?policy hotels|airbnb|air bnb|third party tools|preferred hotels|hotel.{0,30}(policy|exception|compliance|limit|upgrade)|out of policy (hotel|options)|nightly|limits for international travel for hotel|hotel in base location|base location|accommodation during|single occupancy|twin bed	charg
+rail_class_policy	1	(rail|\btrains?\b|amtrak|eurostar|db).{0,40}(first class|1st class|business class|class of fare|exception|upgrade)|(first|business) class (train|rail)|rail exception|syntec	
+rail_booking_help	1	\brail\b|\btrains?\b|deutsche bahn|\bdb\b|eurostar|renfe|ouigo|amtrak|railcard	first class|1st class|business class|class of fare|exception|reimburs
+travel_policy_general	2	polic|allowance|eligib|allowed|rule|weekend expenses|cab |on ground transportation|commut|guidelines|clarif	
+expense_how_to	2	expens|reimburs|claim|manual expense|paid with personal|personal card|refund|concur expense|bank account|payment received|repayment	
+booking_change_help	2	modif|change|cancel|reschedul|amend|editing|duplicate booking|double booking|rebook	
+obt_access	2	access|log ?in|logon|login|sign.?in|password|verification code|account|regist|no active profile|email not|not found|permission|denied|can'?t book|cannot book|unable to book|not able to book|unable to make booking|booking tool|new tool|spotnana|spotana|spontana|tripsource|trip source|concur|travel system|travel tool|otis	
+hotel_booking_billing	2	hotel|room|lodging|stay	
+air_booking_help	2	flight|air|ticket|airline|plane|fly	
+obt_booking_error	3	error|bug|glitch|failed|not working|issue|unable|cannot|can't	

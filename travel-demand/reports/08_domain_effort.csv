@@ -1,0 +1,10 @@
+domain,intent_rows,tickets,days_p50,tier2plus,third_party
+Booking tool access & profile,2067,2031,3.000,0.429,0.335
+Air policy,1264,1190,4.000,0.445,0.225
+Payments & cards,1125,1040,2.087,0.225,0.116
+Car,1082,939,3.000,0.420,0.257
+Rail,919,911,2.000,0.764,0.125
+Booking tool usage,863,828,4.000,0.428,0.330
+Expenses & policy,793,757,4.156,0.412,0.177
+Hotel,408,406,5.000,0.453,0.304
+Programs & special travel,375,369,4.000,0.424,0.299
