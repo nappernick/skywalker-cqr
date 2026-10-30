@@ -51,6 +51,10 @@
   .tsd-fail::before { content: ""; width: .375rem; height: .375rem; border-radius: 50%; background: var(--color-bad); }
   [data-dash-source-state=refreshing] { opacity: .5; transition: opacity var(--cds-dur-slow); }
   [data-dash-source-state=empty] { color: transparent; }
+  .tsd-pill { display: inline-block; padding: 0 6px; border-radius: 999px; border: 1px solid currentColor; font-size: var(--cds-font-size-caption); white-space: nowrap; }
+  .tsd-pill.full { color: var(--color-ok); }
+  .tsd-pill.partial { color: var(--color-warn); }
+  .tsd-pill.none { color: var(--color-bad); }
   .tsd-pick { display: inline-flex; gap: var(--cds-gap-xs); align-items: center; }
 </style>
 
@@ -74,6 +78,7 @@
   <nav class="tsd-tabs" role="tablist" aria-label="Pages">
     <button class="tsd-tab" role="tab" type="button" data-tab="overview" aria-selected="true">Overview</button>
     <button class="tsd-tab" role="tab" type="button" data-tab="answerable" aria-selected="false">Answerable</button>
+    <button class="tsd-tab" role="tab" type="button" data-tab="coverage" aria-selected="false">FAQ coverage</button>
     <button class="tsd-tab" role="tab" type="button" data-tab="intents" aria-selected="false">All intents</button>
     <button class="tsd-tab" role="tab" type="button" data-tab="time" aria-selected="false">Time &amp; place</button>
     <button class="tsd-tab" role="tab" type="button" data-tab="bundles" aria-selected="false">Bundles &amp; journeys</button>
@@ -134,6 +139,36 @@
         <p class="sub">The FAQ backlog. Sort by any column; search matches the intent and its question. Burden columns describe the answerable tickets only.</p>
         <input class="tsd-search" id="ans-search" type="search" placeholder="Search intents" aria-label="Search intents">
         <div class="tsd-scroll" data-draw="t-answerable" data-source="tickets ticket_intents intents"></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="tsd-page" id="coverage" data-page="coverage" hidden>
+    <ul class="tsd-legend" aria-label="FAQ coverage">
+      <li><span class="sw" data-cov="full"></span>Fully answered by an FAQ</li>
+      <li><span class="sw" data-cov="partial"></span>Partly answered</li>
+      <li><span class="sw" data-cov="none"></span>Not covered</li>
+    </ul>
+    <div class="tsd-grid">
+      <article class="tsd-card" id="card-covsets">
+        <h2>How much of the documentation demand the FAQs cover</h2>
+        <p class="sub">Needs judged against all 104 fragments of Skywalker's FAQ corpus (version 2026-10-28). Answer-first needs are action requests that start with an eligibility or process question.</p>
+        <div class="tsd-chart dash-skeleton" data-draw="c-covsets" data-source="tickets ticket_intents intents"></div>
+      </article>
+      <article class="tsd-card" id="card-covmonth">
+        <h2>Answerable tickets per month, by coverage</h2>
+        <p class="sub">Most FAQs were first certified in May 2026. Answerable tickets on fully covered topics did not fall after it; certification is not proof Skywalker was live or used.</p>
+        <div class="tsd-chart dash-skeleton" data-draw="c-covmonth" data-source="tickets ticket_intents intents"></div>
+      </article>
+      <article class="tsd-card wide" id="card-backlog">
+        <h2>Content backlog</h2>
+        <p class="sub">Intents without a full answer, ranked by the documentation demand a page would serve: answerable plus answer-first tickets. Click a bar to filter to that intent.</p>
+        <div class="tsd-chart tall dash-skeleton" data-draw="c-backlog" data-source="tickets ticket_intents intents"></div>
+      </article>
+      <article class="tsd-card wide" id="card-covtable">
+        <h2>Coverage by intent</h2>
+        <p class="sub">The judgment, the FAQs that answer each intent and what is missing. Tickets after FAQ counts tickets created in or after the month the covering FAQ was first certified.</p>
+        <div class="tsd-scroll" data-draw="t-coverage" data-source="tickets ticket_intents intents"></div>
       </article>
     </div>
   </section>

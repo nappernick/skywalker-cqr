@@ -17,6 +17,10 @@ const EVENTS = [
   { month: '2026-07', label: 'CTI tree reorganised' },
   { month: '2026-08', label: 'V-Pay jump' },
 ];
+const COV = ['full', 'partial', 'none'];
+const COV_LABEL = { full: 'Fully answered', partial: 'Partly answered', none: 'Not covered' };
+const covColor = (c) => ({ full: 'var(--color-ok)', partial: 'var(--color-warn)', none: 'var(--color-bad)' })[c] ?? 'var(--cds-chart-muted)';
+const CERTIFIED_MONTH = '2026-05'; // most FAQs first certified (FINDINGS.md section 9)
 const PARAMS = ['region', 'origin', 'from', 'to', 'domain', 'channel', 'intent'];
 
 const fmtInt = d3.format(',');
@@ -252,6 +256,7 @@ function showTab(name) {
 for (const b of document.querySelectorAll('[data-tab]')) b.addEventListener('click', () => showTab(b.dataset.tab));
 if (location.hash.length > 1) showTab(location.hash.slice(1));
 for (const sw of document.querySelectorAll('.tsd-legend .sw[data-ch]')) sw.style.background = chColor(sw.dataset.ch);
+for (const sw of document.querySelectorAll('.tsd-legend .sw[data-cov]')) sw.style.background = covColor(sw.dataset.cov);
 for (const inp of document.querySelectorAll('#ans-search')) inp.addEventListener('input', () => dash.draw('t-answerable'));
 
 // ---------- KPIs ----------
@@ -438,8 +443,9 @@ dash.draw('t-answerable', (el) => {
     { key: 'tier2', label: 'Tier 2+', f: pct },
     { key: 'days', label: 'Median days', f: d3.format('.1f') },
     { key: 'region', label: 'Top region', text: true },
+    { key: 'coverage', label: 'FAQ coverage', text: true, pill: true },
   ];
-  for (const d of rows) d.hiddenShare = d.ans.length ? d.hidden / d.ans.length : 0;
+  for (const d of rows) { d.hiddenShare = d.ans.length ? d.hidden / d.ans.length : 0; d.coverage = d.meta.coverage || ''; }
   rows.sort((a, b) => ansSort.dir * (typeof a[ansSort.key] === 'string' ? d3.ascending(a[ansSort.key], b[ansSort.key]) : a[ansSort.key] - b[ansSort.key]));
   const maxN = d3.max(rows, (d) => d.n) || 1;
   const table = d3.select(el).append('table').attr('class', 'tsd-table');
@@ -455,7 +461,9 @@ dash.draw('t-answerable', (el) => {
     first.append('span').text(d.label);
     first.append('span').attr('class', 'q').text(d.meta.faq_question);
     for (const c of cols.slice(1)) {
-      const td = row.append('td').attr('class', c.text ? null : 'num').text(c.f ? c.f(d[c.key]) : d[c.key]);
+      const td = row.append('td').attr('class', c.text ? null : 'num');
+      if (c.pill) td.append('span').attr('class', `tsd-pill ${d[c.key]}`).text(COV_LABEL[d[c.key]] ?? '—');
+      else td.text(c.f ? c.f(d[c.key]) : d[c.key]);
       if (c.key === 'n') td.append('div').attr('class', 'bar').style('width', `${(d.n / maxN) * 100}%`).style('background', dash.colors[0]);
     }
   });
@@ -682,4 +690,130 @@ dash.draw('c-origin', (el) => {
   if (!items.length) return emptyNote(el, 'No tickets match these filters');
   for (const d of items) d.lines = d.segs.filter((s) => s.v).map((s) => `${CH_LABEL[s.key]}: ${pct(s.v)}`);
   hbars(el, items, { rowH: 34, max: 1, value: (d) => `${fmtInt(d.n)} tickets`, pickedId: m.p.origin, onClick: (d) => toggleParam('origin', d.id) });
+});
+
+// ---------- FAQ coverage ----------
+const isAnswerFirst = (m, r) => r.channel !== 'answer' && (m.meta.get(r.intent).answer_class || '').startsWith('doc_then');
+
+dash.draw('c-covsets', (el) => {
+  const m = begin(el);
+  if (!m) return;
+  const sets = [
+    { id: 'answerable', label: 'Answerable needs', rows: m.rows.filter((r) => r.channel === 'answer') },
+    { id: 'answer_first', label: 'Answer-first needs', rows: m.rows.filter((r) => isAnswerFirst(m, r)) },
+  ].filter((d) => d.rows.length);
+  if (!sets.length) return emptyNote(el, 'No documentation demand matches these filters');
+  const items = sets.map((d) => {
+    const c = d3.rollup(d.rows, (v) => v.length, (r) => m.meta.get(r.intent).coverage);
+    return { id: d.id, label: d.label, total: d.rows.length, segs: COV.map((k) => ({ key: k, v: c.get(k) ?? 0 })) };
+  });
+  hbars(el, items, { rowH: 34, keys: COV, color: covColor, keyLabel: (k) => COV_LABEL[k], labelShare: 0.36,
+    value: (d) => `${fmtInt(d.total)} needs` });
+});
+
+dash.draw('c-covmonth', (el) => {
+  const m = begin(el);
+  if (!m) return;
+  const months = m.months.filter((x) => (!m.p.from || x >= m.p.from) && (!m.p.to || x <= m.p.to));
+  const ans = m.rows.filter((r) => r.channel === 'answer');
+  if (!ans.length) return emptyNote(el, 'No answerable needs match these filters');
+  const data = months.map((mo) => {
+    const rs = ans.filter((r) => r.t.month === mo);
+    const out = { month: mo, total: 0 };
+    for (const k of COV) {
+      out[k] = new Set(rs.filter((r) => m.meta.get(r.intent).coverage === k).map((r) => r.t.k)).size;
+      out.total += out[k];
+    }
+    return out;
+  });
+  const w = Math.max(300, el.clientWidth);
+  const h = 260;
+  const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${w} ${h}`).attr('height', h);
+  const ymax = d3.max(data, (d) => d.total) || 1;
+  const left = textWidth(svg, fmtInt(ymax)) + 10;
+  const mt = 22;
+  const x = d3.scaleBand(months, [left, w - 4]).padding(0.25);
+  const y = d3.scaleLinear([0, ymax], [h - 24, mt]).nice();
+  svg.append('g').selectAll('line').data(y.ticks(4)).join('line').attr('x1', left).attr('x2', w).attr('y1', y).attr('y2', y).style('stroke', 'var(--cds-chart-grid)');
+  svg.append('g').selectAll('text').data(y.ticks(4)).join('text').attr('class', 'muted').attr('x', left - 6).attr('y', y).attr('dy', '0.35em').attr('text-anchor', 'end').text(fmtInt);
+  svg.append('g').selectAll('g').data(d3.stack().keys(COV)(data)).join('g').style('fill', (s) => covColor(s.key))
+    .selectAll('rect').data((s) => s).join('rect')
+    .attr('x', (d) => x(d.data.month)).attr('width', x.bandwidth())
+    .attr('y', (d) => y(d[1])).attr('height', (d) => Math.max(0, y(d[0]) - y(d[1])));
+  const every = Math.ceil(months.length / Math.max(1, Math.floor(w / 64)));
+  svg.append('g').selectAll('text').data(months.filter((_, i) => i % every === 0)).join('text').attr('class', 'muted')
+    .attr('x', (d) => x(d) + x.bandwidth() / 2).attr('y', h - 6).attr('text-anchor', 'middle').text((d) => monthFmt(monthDate(d)));
+  if (months.includes(CERTIFIED_MONTH)) {
+    const cx = x(CERTIFIED_MONTH);
+    svg.append('line').attr('x1', cx).attr('x2', cx).attr('y1', mt - 4).attr('y2', h - 24).style('stroke', 'var(--cds-chart-reference)').attr('stroke-dasharray', '3 3');
+    const t = svg.append('text').attr('class', 'muted').attr('y', 12).text('FAQs certified');
+    const tw = t.node().getComputedTextLength();
+    t.attr('x', Math.max(0, Math.min(w - tw, cx - tw / 2)));
+  }
+  const tip = tooltip(el);
+  svg.append('g').selectAll('rect').data(data).join('rect').attr('class', 'row-hit')
+    .attr('x', (d) => x(d.month)).attr('width', x.bandwidth()).attr('y', mt).attr('height', h - 24 - mt)
+    .on('mousemove', (event, d) => tip.show(event, `${monthFmt(monthDate(d.month))} · ${fmtInt(d.total)} answerable tickets`,
+      COV.map((k) => `${COV_LABEL[k]}: ${fmtInt(d[k])}`)))
+    .on('mouseleave', () => tip.hide());
+  el.style.minHeight = `${h}px`;
+});
+
+function coverageRows(m) {
+  return byIntent(m).map((d) => {
+    const ans = new Set(d.rows.filter((r) => r.channel === 'answer').map((r) => r.t.k)).size;
+    const af = new Set(d.rows.filter((r) => isAnswerFirst(m, r)).map((r) => r.t.k)).size;
+    const from = d.meta.faq_available_from;
+    const after = from ? new Set(d.rows.filter((r) => r.t.month >= from.slice(0, 7)).map((r) => r.t.k)).size : 0;
+    return { ...d, ans, af, demand: ans + af, after, coverage: d.meta.coverage || '' };
+  });
+}
+
+dash.draw('c-backlog', (el) => {
+  const m = begin(el);
+  if (!m) return;
+  const items = coverageRows(m).filter((d) => d.coverage !== 'full' && d.demand > 0)
+    .sort((a, b) => b.demand - a.demand).slice(0, 20)
+    .map((d) => ({ id: d.id, label: d.label, total: d.demand, segs: [{ key: d.coverage, v: d.demand }],
+      lines: [`${COV_LABEL[d.coverage]}`, `Answerable tickets: ${fmtInt(d.ans)}`, `Answer-first tickets: ${fmtInt(d.af)}`, d.meta.gap] }));
+  if (!items.length) return emptyNote(el, 'No coverage gaps match these filters');
+  hbars(el, items, { rowH: 24, keys: COV, color: covColor, pickedId: m.p.intent, onClick: (d) => toggleParam('intent', d.id) });
+});
+
+let covSort = { key: 'demand', dir: -1 };
+dash.draw('t-coverage', (el) => {
+  const m = begin(el, { chart: false });
+  if (!m) return;
+  const rows = coverageRows(m);
+  if (!rows.length) return emptyNote(el, 'No intents match these filters');
+  const cols = [
+    { key: 'label', label: 'Intent', text: true },
+    { key: 'coverage', label: 'Coverage', text: true },
+    { key: 'demand', label: 'Doc demand', f: fmtInt },
+    { key: 'ans', label: 'Answerable', f: fmtInt },
+    { key: 'af', label: 'Answer-first', f: fmtInt },
+    { key: 'after', label: 'Tickets after FAQ', f: fmtInt },
+    { key: 'gap', label: 'What is missing', text: true },
+    { key: 'faqs', label: 'Covering FAQs', text: true },
+  ];
+  for (const d of rows) { d.gap = d.meta.gap || ''; d.faqs = d.meta.faq_titles || ''; }
+  const order = { full: 0, partial: 1, none: 2 };
+  rows.sort((a, b) => covSort.dir * (covSort.key === 'coverage' ? order[a.coverage] - order[b.coverage]
+    : typeof a[covSort.key] === 'string' ? d3.ascending(a[covSort.key], b[covSort.key]) : a[covSort.key] - b[covSort.key]));
+  const table = d3.select(el).append('table').attr('class', 'tsd-table');
+  table.append('thead').append('tr').selectAll('th').data(cols).join('th')
+    .attr('class', (c) => (c.text ? null : 'num'))
+    .attr('aria-sort', (c) => (c.key === covSort.key ? (covSort.dir > 0 ? 'ascending' : 'descending') : 'none'))
+    .append('button').attr('type', 'button').text((c) => c.label + (c.key === covSort.key ? (covSort.dir > 0 ? ' ↑' : ' ↓') : ''))
+    .on('click', (event, c) => { covSort = { key: c.key, dir: covSort.key === c.key ? -covSort.dir : (c.text ? 1 : -1) }; dash.draw('t-coverage'); });
+  const tr = table.append('tbody').selectAll('tr').data(rows).join('tr');
+  tr.each(function (d) {
+    const row = d3.select(this);
+    for (const c of cols) {
+      const td = row.append('td').attr('class', c.text ? null : 'num');
+      if (c.key === 'coverage') td.append('span').attr('class', `tsd-pill ${d.coverage}`).text(COV_LABEL[d.coverage] ?? '—');
+      else if (c.key === 'gap' || c.key === 'faqs') td.append('span').attr('class', 'q').text(d[c.key] || '—');
+      else td.text(c.f ? c.f(d[c.key]) : d[c.key]);
+    }
+  });
 });

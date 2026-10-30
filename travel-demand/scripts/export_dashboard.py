@@ -51,6 +51,8 @@ def main(db):
     ti = ti.assign(k=ti.ticket_id.map(key)).drop(columns="ticket_id").rename(columns={"intent_id": "intent", "channel_basis": "basis"})
     write("ticket_intents.json", ti[["k", "intent", "channel", "basis"]].to_dict("records"))
     intents = pd.read_sql("select intent_id as intent, name, domain, faq_question, answer_class, best_channel, agent_capability from intent", con)
+    cov = pd.read_csv(ROOT / "reports" / "11_faq_coverage.csv")[["intent_id", "coverage", "gap", "faq_titles", "faq_available_from"]]
+    intents = intents.merge(cov.rename(columns={"intent_id": "intent"}), on="intent", how="left")
     write("intents.json", intents[intents.domain != "Excluded"].fillna("").to_dict("records"))
     tr = pd.read_csv(ROOT / "reports" / "05_requester_transitions_30d.csv")
     write("transitions.json", tr.to_dict("records"))
