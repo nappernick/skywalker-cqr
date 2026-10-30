@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.tsbuildinfo
+__pycache__/
+.venv/
+.DS_Store
+# Raw tickets, the SQLite build, the FAQ corpus, census ratings and the HMAC key hold personal data.
+travel-demand/data/

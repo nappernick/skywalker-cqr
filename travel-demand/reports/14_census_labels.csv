@@ -1,0 +1,8 @@
+label,tickets,share
+fact_answer,1615,0.2016
+self_serve,221,0.0276
+answer_then_action,1190,0.1485
+action,3946,0.4925
+defect,613,0.0765
+feedback,233,0.0291
+unclear,194,0.0242

@@ -1,0 +1,11 @@
+measure,value
+tickets,8012.0
+signatures,4256.0
+answerable,1836.0
+answerable_share,0.2292
+strict_answerable,1617.0
+loose_answerable,1961.0
+agreement_signatures,0.8466
+agreement_tickets,0.8591
+kappa,0.7983
+adjudicated_signatures,653.0

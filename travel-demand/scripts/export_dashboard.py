@@ -1,7 +1,8 @@
 """Export de-identified dashboard data from data/travel.sqlite -> reports/dashboard/*.json.
 
 No titles, ticket ids, aliases or pseudonymous keys leave the database: tickets get a
-row number, and cross-ticket transitions ship only as an aggregate.
+row number, and cross-ticket transitions ship only as an aggregate. When census ratings
+exist (data/census, see scripts/census.py) each ticket also carries its census label.
 
 Usage: python3 scripts/export_dashboard.py [data/travel.sqlite]
 """
@@ -51,6 +52,13 @@ def main(db):
         "topic": t.river_topic.where(t.title_is_template.astype(bool)).str.replace(r"\s+", " ", regex=True).str.strip().astype(object),
     })
     tickets["topic"] = tickets.topic.where(tickets.topic.notna(), None)
+    census = ROOT / "data" / "census"
+    if (census / "ratings.csv").exists():
+        label = pd.read_csv(census / "ticket_signature.csv").merge(pd.read_csv(census / "ratings.csv")[["signature", "final"]], on="signature")
+        tickets["census"] = t.ticket_id.map(label.set_index("ticket_id").final)
+        assert tickets.census.notna().all(), "census ratings do not cover every demand ticket"
+    else:
+        tickets["census"] = None
     write("tickets.json", tickets.to_dict("records"))
     ti = ti.assign(k=ti.ticket_id.map(key)).drop(columns="ticket_id").rename(columns={"intent_id": "intent", "channel_basis": "basis"})
     write("ticket_intents.json", ti[["k", "intent", "channel", "basis"]].to_dict("records"))

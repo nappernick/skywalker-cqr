@@ -1,0 +1,20 @@
+{
+  "name": "skywalker",
+  "private": true,
+  "type": "module",
+  "workspaces": ["travel-demand/dashboard", "cqr-bench"],
+  "scripts": {
+    "dev": "bun run --cwd travel-demand/dashboard dev",
+    "build": "bun run --cwd travel-demand/dashboard build",
+    "preview": "bun run --cwd travel-demand/dashboard preview",
+    "pipeline": "bun travel-demand/pipeline.ts",
+    "bench": "bun run --cwd cqr-bench bench",
+    "typecheck": "tsc -p tsconfig.json && bun run --cwd travel-demand/dashboard typecheck && bun run --cwd cqr-bench typecheck",
+    "test": "bun test",
+    "check": "bun run typecheck && bun test && bun run build"
+  },
+  "devDependencies": {
+    "@types/bun": "1.1.13",
+    "typescript": "5.6.3"
+  }
+}

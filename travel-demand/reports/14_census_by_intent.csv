@@ -1,0 +1,64 @@
+intent_id,name,tickets,census_answerable,answer_then_action
+obt_access,Booking tool login and access,1355,0.168,0.053
+bahncard,BahnCard request,638,0.008,0.013
+car_damage_accident,Rental car accident / damage,602,0.566,0.018
+obt_payment_method,Payment method in the booking tool,486,0.237,0.214
+obt_booking_error,Booking error in the tool,327,0.15,0.086
+pea_eligibility,Premium economy eligibility (PEA list),318,0.094,0.547
+obt_profile_lifecycle,Profile activation for new hires / rehires / RIF / transfers,252,0.056,0.032
+vpay_request,Using V-Pay for travel,229,0.148,0.096
+oop_exception_approval,Out-of-policy expense approval,228,0.031,0.211
+air_booking_help,Air booking or change assistance,225,0.467,0.071
+vpay_access,V-Pay form access,223,0.009,0.919
+obt_profile_data,Profile data after migration,215,0.172,0.042
+corporate_housing,Corporate / long-term housing,191,0.016,0.016
+obt_profile_name,Legal name on travel profile,191,0.147,0.058
+car_booking_help,Car booking assistance,153,0.255,0.19
+sncf_card,SNCF discount card,152,0.0,0.0
+obt_pricing_error,Pricing mistakes / tool price vs direct,147,0.116,0.088
+oop_cabin_upgrade,Cabin upgrade flagged on expense report,133,0.09,0.692
+obt_hotel_booking,Hotel not available in the tool,132,0.159,0.152
+expense_report_returned,Returned / rejected travel expense report,131,0.107,0.405
+expense_how_to,How to expense a travel cost,130,0.431,0.177
+loyalty_programs,Loyalty programs and status promotions,129,0.248,0.078
+car_rental_policy,Rental car policy and vendors,123,0.577,0.236
+rail_booking_help,Rail booking assistance,117,0.231,0.043
+hotel_booking_billing,Hotel booking or billing assistance,112,0.241,0.089
+car_insurance,Rental car insurance,108,0.583,0.176
+paid_upgrade_personal,Paying for a personal upgrade,106,0.557,0.396
+medical_accommodation,Medical / disability travel accommodation,95,0.137,0.558
+corp_card,Corporate travel card,86,0.372,0.326
+cancelled_flight_expense,Expensing cancelled / changed flights,84,0.786,0.095
+travel_policy_general,General travel policy question,80,0.75,0.088
+seat_fees,Seat selection fees,78,0.321,0.538
+hotel_no_show_cancel,Hotel no-show / cancellation charges,77,0.013,0.078
+flight_credits,Unused flight credits,76,0.197,0.329
+fare_quote,Economy fare quote for reimbursement,75,0.013,0.0
+business_personal_combined,Combining business and personal travel,74,0.77,0.162
+car_rental_charges,Disputing rental charges,73,0.014,0.205
+obt_legacy_bookings,Trips booked in the old tool,71,0.507,0.127
+booking_invoice,Getting a booking invoice / receipt,69,0.174,0.087
+obt_feedback,Tool feedback and enhancement requests,67,0.045,0.0
+obt_how_to,How to use the booking tool,66,0.5,0.015
+obt_central_bill_cvv,Central-bill card CVV,65,0.646,0.262
+cost_center,Charging travel to another cost center,62,0.161,0.242
+obt_arranger_delegate,Arranger / delegate access,54,0.241,0.222
+obt_airline_not_bookable,Airline not available in the tool,53,0.283,0.434
+non_employee_travel,Travel for guests / candidates / interns / contractors,46,0.478,0.217
+booking_change_help,Change or cancel an existing booking,41,0.366,0.098
+tmc_service_complaint,Travel agency (BCD) service complaint,41,0.098,0.024
+cabin_exception,Cabin exception request,36,0.111,0.333
+vpay_failure,V-Pay failures,36,0.083,0.278
+flight_disruption,Delays / baggage / passenger-rights compensation,29,0.621,0.138
+trail_code,Trail code / travel approval,29,0.655,0.103
+visa_immigration,Visa and immigration letters,28,0.536,0.179
+hotel_policy,Hotel policy and rates,28,0.786,0.179
+car_fines_violations,Traffic fines / parking violations,24,0.083,0.083
+team_membership_request,Team / permission-group membership,23,0.304,0.0
+travel_history_report,Travel history / reports,21,0.143,0.048
+receipt_policy,Receipt requirements,19,0.947,0.0
+group_travel,Group travel,17,0.176,0.176
+rail_class_policy,Rail class policy,12,0.167,0.333
+travel_insurance,Travel insurance and duty of care,12,0.833,0.167
+travel_time,Recording travel time,11,0.727,0.091
+tripbam_rebooking,TRIPBAM rebooking,9,0.111,0.889

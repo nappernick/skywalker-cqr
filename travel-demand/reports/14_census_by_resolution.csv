@@ -1,0 +1,10 @@
+resolution_type,fact_answer,self_serve,answer_then_action,action,defect,feedback,unclear
+account_fix,42,13,173,1590,10,2,6
+approval,37,0,232,164,1,2,6
+defect,119,0,41,28,488,59,4
+feedback,21,2,3,7,0,108,2
+fulfilment,472,169,461,1767,109,51,130
+knowledge,786,35,122,154,4,7,26
+other,5,0,1,11,0,0,4
+out_of_scope,21,0,2,8,0,0,1
+routing,112,2,155,217,1,4,15

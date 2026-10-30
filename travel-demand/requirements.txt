@@ -1,0 +1,8 @@
+# Analysis pipeline. Tested with Python 3.13 and exactly these versions.
+pandas==3.0.5
+numpy==2.5.3
+openpyxl==3.1.5
+scipy==1.18.1
+scikit-learn==1.5.2
+umap-learn==0.5.6
+fastembed==0.7.3
