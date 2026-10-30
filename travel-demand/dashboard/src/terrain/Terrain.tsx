@@ -16,8 +16,8 @@ const TOP = 1.09; // 0.78 raised 40%
 const CONTOURS = 9;
 const SIGMA = 0.1;
 const LEVEL_ZOOM: Readonly<Record<Level, number>> = { 0: 1, 1: 1.35, 2: 3.4 };
-/** Height exponent per scale option: roots lift the small hills, powers exaggerate the peaks. */
-const POWER: Readonly<Record<HeightScale, number>> = { sqrt: 0.5, linear: 1, squared: 2, cubed: 3, fifth: 5 };
+/** Height exponent per scale option: deeper roots lift the small hills more. */
+const POWER: Readonly<Record<HeightScale, number>> = { linear: 1, sqrt: 1 / 2, root3: 1 / 3, root4: 1 / 4, root5: 1 / 5 };
 const TWEEN_MS = 650;
 const MONTHS_PER_SECOND = 1 / 1.05;
 

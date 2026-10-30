@@ -6,7 +6,7 @@ import { CHANNEL_LABEL, fmtMonth } from "../ui/format";
 
 export type HeightBasis = "all" | "answerable" | "gap";
 export type ColorBasis = "group" | "coverage" | "channel" | "trend";
-export type HeightScale = "sqrt" | "linear" | "squared" | "cubed" | "fifth";
+export type HeightScale = "linear" | "sqrt" | "root3" | "root4" | "root5";
 export type PartBasis = "topic" | "channel" | "region" | "month";
 export type Level = 0 | 1 | 2;
 
