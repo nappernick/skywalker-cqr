@@ -275,26 +275,6 @@ function render(o: Orbit, S: Scene, L: Live, overlay: CanvasRenderingContext2D):
     }
     if (colArr instanceof Float32Array) { colArr[k * 3] = r; colArr[k * 3 + 1] = g; colArr[k * 3 + 2] = bl; }
   }
-  // Bake light into the colours: slopes facing the light brighten, slopes away darken, flat ground stays
-  // exactly its theme colour (shade 1), so the map always matches the page palette.
-  if (colArr instanceof Float32Array && posArr instanceof Float32Array) {
-    const cell = gridToWorld(1) - gridToWorld(0);
-    const lx = -0.62; const ly = 0.62; const lz = 0.48;
-    const ln = Math.hypot(lx, ly, lz);
-    const flat = 0.6 + 0.4 * (ly / ln);
-    const h = (i: number, j: number) => posArr[(Math.max(0, Math.min(GRID - 1, j)) * GRID + Math.max(0, Math.min(GRID - 1, i))) * 3 + 1] ?? 0;
-    for (let j = 0; j < GRID; j += 1) {
-      for (let i = 0; i < GRID; i += 1) {
-        const dx = (h(i + 1, j) - h(i - 1, j)) / (2 * cell);
-        const dz = (h(i, j + 1) - h(i, j - 1)) / (2 * cell);
-        const nl = Math.hypot(dx, 1, dz);
-        const dot = Math.max(0, (-dx * lx + ly - dz * lz) / (nl * ln));
-        const shade = Math.max(0.8, Math.min(1.12, (0.6 + 0.4 * dot) / flat));
-        const k = (j * GRID + i) * 3;
-        for (let ch = 0; ch < 3; ch += 1) colArr[k + ch] = Math.min(1, (colArr[k + ch] ?? 0) * shade);
-      }
-    }
-  }
   pos.needsUpdate = true;
   col.needsUpdate = true;
   S.surface.geometry.computeBoundingSphere();

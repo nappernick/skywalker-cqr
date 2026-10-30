@@ -2,7 +2,7 @@
 :root { --frame: #dcd7bb; --block: #fa9f3d; --text: #0724a6; --text-2: #691b78; --rule: #435658; --flag: #484a5a;
   --grid: #c7864b; --border: #a77b4b; --muted: #b58149; --ok: #28591c; --warn: #a85a00; --bad: #a81917;
   --font: "Rubik", system-ui, sans-serif; --gap: 20px;
-  --gridline: color-mix(in srgb, var(--rule) 22%, transparent); }
+  --gridline: var(--rule); }
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--frame); color: var(--text); font: 15px/1.45 var(--font); }
 button, input, select { font: inherit; color: inherit; }

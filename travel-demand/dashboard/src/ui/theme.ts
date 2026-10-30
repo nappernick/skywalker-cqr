@@ -1,4 +1,3 @@
-import { interpolateRgb } from "d3";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { CensusLabel, Channel, Coverage } from "../domain/types";
 
@@ -27,7 +26,7 @@ const PALETTES: Readonly<Record<PaletteId, PaletteRoles>> = {
 
 export interface Theme extends PaletteRoles {
   readonly id: PaletteId;
-  /** Chart colours, all derived from the six roles: the four inks, then their tints toward the block. */
+  /** Chart colours: the exact palette colours other than the panel, repeated in order. */
   readonly series: Series;
   /** Aliases the charts use, all derived from the six roles. */
   readonly bg: string;
@@ -47,17 +46,14 @@ export interface Theme extends PaletteRoles {
 
 function themeOf(id: PaletteId): Theme {
   const p = PALETTES[id];
-  const mix = interpolateRgb(p.block, p.rule);
-  const tint = (c: string, k: number) => interpolateRgb(c, p.block)(k);
-  const series: Series = [
-    p.text, p.text2, p.rule, p.flag,
-    tint(p.text, 0.45), tint(p.text2, 0.45), tint(p.rule, 0.45), tint(p.flag, 0.45),
-    interpolateRgb(p.text, p.text2)(0.5), tint(p.text, 0.7), tint(p.text2, 0.7), tint(p.rule, 0.7),
-  ];
+  // Exact palette colours only.
+  const inks = [p.text, p.text2, p.rule, p.flag, p.frame] as const;
+  const series: Series = [inks[0], inks[1], inks[2], inks[3], inks[4], inks[0], inks[1], inks[2], inks[3], inks[4], inks[0], inks[1]];
   return {
-    ...p, id, series, bg: p.frame, panel: p.block, fg: p.text, fgMuted: p.text2, border: mix(0.45), grid: mix(0.2), axis: mix(0.6),
-    reference: p.flag, muted: mix(0.4), popover: p.frame, ok: p.text, warn: p.text2, bad: p.rule,
+    ...p, id, series, bg: p.frame, panel: p.block, fg: p.text, fgMuted: p.text2, border: p.rule, grid: p.rule, axis: p.rule,
+    reference: p.flag, muted: p.frame, popover: p.frame, ok: p.text, warn: p.text2, bad: p.rule,
   };
+
 }
 
 export const FONT_FAMILY = '"Rubik", system-ui, -apple-system, "Segoe UI", sans-serif';
