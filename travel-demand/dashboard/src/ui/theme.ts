@@ -1,3 +1,4 @@
+import { interpolateRgb } from "d3";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { CensusLabel, Channel, Coverage } from "../domain/types";
 
@@ -46,20 +47,28 @@ export interface Theme extends PaletteRoles {
 
 function themeOf(id: PaletteId): Theme {
   const p = PALETTES[id];
-  // Exact palette colours only.
-  const inks = [p.text, p.text2, p.rule, p.flag, p.frame] as const;
-  const series: Series = [inks[0], inks[1], inks[2], inks[3], inks[4], inks[0], inks[1], inks[2], inks[3], inks[4], inks[0], inks[1]];
+  // Charts use the theme's four ink colours first, then lighter and darker variants of those same inks.
+  // The frame and panel colours never appear inside a chart: on a panel they read as holes.
+  const tint = (c: string, k: number) => interpolateRgb(c, "#ffffff")(k);
+  const shade = (c: string, k: number) => interpolateRgb(c, "#000000")(k);
+  const inks = [p.text, p.text2, p.rule, p.flag] as const;
+  const series: Series = [
+    inks[0], inks[1], inks[2], inks[3],
+    tint(inks[0], 0.4), tint(inks[1], 0.4), tint(inks[2], 0.4), tint(inks[3], 0.4),
+    shade(inks[0], 0.35), shade(inks[1], 0.35), shade(inks[2], 0.35), shade(inks[3], 0.35),
+  ];
   return {
     ...p, id, series, bg: p.frame, panel: p.block, fg: p.text, fgMuted: p.text2, border: p.rule, grid: p.rule, axis: p.rule,
-    reference: p.flag, muted: p.frame, popover: p.frame, ok: p.text, warn: p.text2, bad: p.rule,
+    reference: p.flag, muted: tint(p.text, 0.55), popover: p.frame, ok: p.text, warn: p.text2, bad: p.rule,
   };
 
 }
 
 export const FONT_FAMILY = '"Rubik", system-ui, -apple-system, "Segoe UI", sans-serif';
 
+/** The two dominant channels take the theme's two text inks; rarer ones take rule, flag and light variants. */
 const CHANNEL_INDEX: Readonly<Record<Channel, number>> = {
-  answer: 0, agent_action: 1, intake_and_route: 2, agent_prep_human_decision: 3, human_investigation: 4, engineering_fix: 6,
+  answer: 0, agent_action: 1, engineering_fix: 2, human_investigation: 3, agent_prep_human_decision: 5, intake_and_route: 6,
 };
 const CENSUS_INDEX: Readonly<Record<CensusLabel, number | "muted">> = {
   fact_answer: 0, self_serve: 7, answer_then_action: 4, action: 1, defect: 3, feedback: 5, unclear: "muted",
