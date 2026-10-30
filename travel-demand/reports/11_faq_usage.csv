@@ -1,0 +1,105 @@
+faq_title,topic,certified,intents,tickets,answerable_tickets,intent_ids
+How do I get technical support for the Self-Service Travel Booking Tool?,Travel Booking,2026-05-22,4,1884,277,obt_access;obt_booking_error;obt_pricing_error;obt_feedback
+I'm a new hire — how do I book my first business trip?,Travel Booking,2026-07-16,2,1604,238,obt_access;obt_profile_lifecycle
+"How do I report a car accident, theft, fine, or traffic violation while traveling for work/business?",Travel Booking,2026-05-21,3,673,9,car_damage_accident;car_fines_violations;car_rental_charges
+What Hotel Accommodations am I Allowed to Book?,Travel Booking,2026-05-21,5,600,71,obt_hotel_booking;obt_pricing_error;corporate_housing;hotel_policy;hotel_booking_billing
+How do I allocate travel costs to a different cost center?,Travel Booking,2026-08-04,2,545,128,obt_payment_method;cost_center
+Why can I not see the Amazon form of payment when booking my flight?,Travel Booking,2026-05-26,1,486,83,obt_payment_method
+When should I contact a Travel Counselor for a complex booking?,Travel Booking,2026-06-19,3,444,97,obt_how_to;air_booking_help;car_booking_help
+What Flights Am I Allowed to Book?,Travel Booking,2026-05-21,3,416,55,obt_booking_error;obt_airline_not_bookable;cabin_exception
+How Do I Set Up My Travel Profile? (India),Travel Booking,2026-05-21,2,391,51,obt_profile_name;obt_profile_data
+Can I get permission to upgrade for long-haul flights?,Travel Booking,2026-05-22,2,334,9,pea_eligibility;cabin_exception
+I need to change my travel plans (Global Access),Travel Booking,2026-05-21,3,332,90,obt_how_to;air_booking_help;booking_change_help
+What expenses are reimbursable? - (Global),Expense Reimbursement,2026-05-21,2,308,125,oop_exception_approval;travel_policy_general
+Why is my booking out of policy?,Travel Booking,2026-05-21,2,308,125,oop_exception_approval;travel_policy_general
+How do I arrange travel for a new hire before their start date?,Travel Booking,2026-07-16,2,291,56,obt_profile_lifecycle;non_employee_travel
+Where Can I Locate My Previously Booked Trips? (Global Access),Travel Booking,2026-05-21,4,273,68,obt_how_to;rail_booking_help;booking_invoice;travel_history_report
+How do I book travel for work at Amazon?,Travel Booking,2026-05-20,2,269,23,car_booking_help;rail_booking_help
+I need to change my travel plans (Regional),Travel Booking,2026-05-21,2,266,52,air_booking_help;booking_change_help
+How do I set up my travel profile? (Global Access),Travel Booking,2026-05-21,2,261,42,obt_profile_data;obt_arranger_delegate
+How Do I Set Up My Travel Profile? (Regional),Travel Booking,2026-05-21,2,261,42,obt_profile_data;obt_arranger_delegate
+My expense report was returned. What do I do now? - Global,Expense Reimbursement,2026-05-21,2,248,54,oop_cabin_upgrade;expense_report_returned
+Am I Allowed to Upgrade My Fare Class? (Global Access),Travel Booking,2026-05-21,2,237,130,paid_upgrade_personal;oop_cabin_upgrade
+Where do I locate Travel Counselor contact information?,Travel Booking,2026-05-22,1,225,47,air_booking_help
+I accidentally used my corporate card for a personal expense. What should I do? - Updated Global,Expense Reimbursement,2026-05-21,2,216,196,corp_card;expense_how_to
+Do I Need Rental Car Insurance for Work Travel?,Travel Booking,2026-05-22,2,215,206,car_insurance;car_rental_policy
+How Do I Set Up My Travel Profile? (Japan),Travel Booking,2026-05-21,1,215,34,obt_profile_data
+How Do I Set Up My Travel Profile? (China),Travel Booking,2026-05-21,1,215,34,obt_profile_data
+How do I fix a name mismatch in my Travel Profile?,Travel Booking,2026-09-16,1,191,19,obt_profile_name
+How Do I Cancel or Modify a Hotel Booking? (Regional),Travel Booking,2026-05-20,2,153,16,hotel_booking_billing;booking_change_help
+How do I get support for my expense report? (Global),Expense Reimbursement,2026-05-21,1,130,129,expense_how_to
+How long does it take to get reimbursed? - Global,Expense Reimbursement,2026-05-21,1,130,129,expense_how_to
+How do I find the right expense type? - Global,Expense System,2026-05-21,1,130,129,expense_how_to
+How do I submit an expense report? - Global,Expense System,2026-05-21,1,130,129,expense_how_to
+Can I earn personal miles or loyalty points when traveling for business? (Regional),Travel Booking,2026-06-05,1,129,4,loyalty_programs
+Can I upgrade my fare using miles?,Travel Booking,2026-05-21,1,129,4,loyalty_programs
+Can I earn personal miles or loyalty points when traveling for business? (Global),Travel Booking,2026-05-21,1,129,4,loyalty_programs
+Am I reimbursed for personal property lost or damaged during business travel?,Travel Booking,2026-09-24,3,125,101,corp_card;flight_disruption;travel_insurance
+Why should I book preferred travel suppliers for business travel?,Travel Booking,2026-05-20,1,123,115,car_rental_policy
+What size rental car am I allowed to book?,Travel Booking,2026-05-21,1,123,115,car_rental_policy
+Am I allowed to upgrade my fare class? (Regional),Travel Booking,2026-05-21,1,106,98,paid_upgrade_personal
+How do I request medical accommodation for business travel?,Travel Booking,2026-05-22,1,95,7,medical_accommodation
+What is the deadline for submitting expenses? - Global,Expense Reimbursement,2026-05-21,1,86,67,corp_card
+Are meals covered during business travel? - Per diem only (Germany),Expense Reimbursement,2026-05-21,1,80,77,travel_policy_general
+Are meals covered during business travel? - Per Diem or Actual Cost,Expense Reimbursement,2026-05-21,1,80,77,travel_policy_general
+Are mobile phone expenses reimbursable? - Global,Expense Reimbursement,2026-05-21,1,80,77,travel_policy_general
+Are meals covered during business travel? - No Per Diem,Expense Reimbursement,2026-05-21,1,80,77,travel_policy_general
+Why do I have to book travel in the program?,Travel Booking,2026-05-20,1,80,77,travel_policy_general
+Do I need my manager's approval to book travel?,Travel Booking,2026-05-21,1,80,77,travel_policy_general
+What is the process for booking a seat? (Regional),Travel Booking,2026-05-21,1,78,75,seat_fees
+Will policy-approved fare classes include seats and bags?,Travel Booking,2026-05-21,1,78,75,seat_fees
+How do I get a refund for a hotel charge after canceling my booking?,Travel Booking,2026-05-21,1,77,1,hotel_no_show_cancel
+Am I Allowed to Book Personal Travel in the Self-Service Travel Booking Tool?,Travel Booking,2026-05-22,1,74,72,business_personal_combined
+Can I Combine Work and Personal Travel?,Travel Booking,2026-05-22,1,74,72,business_personal_combined
+When should I contact a Travel Counselor for a travel disruption?,Travel Booking,2026-06-19,2,70,29,flight_disruption;booking_change_help
+Where Can I Locate My Previously Booked Trips? (Regional),Travel Booking,2026-05-21,1,66,38,obt_how_to
+Where will I locate a CVV code to complete an international flight booking using the Amazon Central Billing Solution?,Travel Booking,2026-08-04,1,65,25,obt_central_bill_cvv
+How do I request group air travel?,Meetings and Events,2026-09-11,2,63,39,non_employee_travel;group_travel
+What expenses are reimbursable? (Non-Amazonians),Expense Reimbursement,2026-05-21,1,46,37,non_employee_travel
+Where Can I Locate a Trail Code?,Travel Booking,2026-05-22,1,29,25,trail_code
+How do I get help for same-day flight disruptions?,Travel Booking,2026-06-19,1,29,24,flight_disruption
+Do I need a visa for travel?,Travel Booking,2026-05-21,1,28,16,visa_immigration
+"What receipts do I need to keep for reimbursement? (Germany, Puerto Rico, Poland, Portugal)",Expense Reimbursement,2026-05-21,1,19,19,receipt_policy
+"What receipts do I need to keep for reimbursement?  (India, Thailand)",Expense Reimbursement,2026-05-21,1,19,19,receipt_policy
+What receipts do I need to keep for reimbursement? (Argentina),Expense Reimbursement,2026-05-21,1,19,19,receipt_policy
+What should I do if I lost a receipt? (Global),Expense Reimbursement,2026-05-21,1,19,19,receipt_policy
+What receipts do I need to keep for reimbursement? (China),Expense Reimbursement,2026-05-21,1,19,19,receipt_policy
+What receipts do I need to keep for reimbursement? (Australia),Expense Reimbursement,2026-05-21,1,19,19,receipt_policy
+What receipts do I need to keep for reimbursement? (Hong Kong),Expense Reimbursement,2026-05-21,1,19,19,receipt_policy
+What receipts do I need to keep for reimbursement? (Philippines),Expense Reimbursement,2026-05-21,1,19,19,receipt_policy
+"What receipts do I need to keep for reimbursement? (Belgium, Brazil, Chile, Costa Rica, Japan, Korea, Malaysia, Poland, Romania, Singapore, Slovakia, Taiwan, Türkiye)",Expense Reimbursement,2026-05-21,1,19,19,receipt_policy
+What receipts do I need to keep for reimbursement? (United States),Expense Reimbursement,2026-05-21,1,19,19,receipt_policy
+What receipts do I need to keep for reimbursement? (36 Countries),Expense Reimbursement,2026-05-21,1,19,19,receipt_policy
+What receipts do I need to keep for reimbursement? (Serbia),Expense Reimbursement,2026-05-21,1,19,19,receipt_policy
+How do I request support with a hotel room block for an offsite meeting or event?,Meetings and Events,2026-08-06,1,17,2,group_travel
+Do I Need Travel Insurance?,Travel Booking,2026-05-22,1,12,11,travel_insurance
+How do I access medical support while traveling?,Travel Booking,2026-06-23,1,12,11,travel_insurance
+Why am I receiving a new hotel confirmation I did not request?,Travel Booking,2026-05-26,1,9,9,tripbam_rebooking
+How can I help you? (Skywalker Assistance),Employee Business Travel,2026-09-17,0,0,0,
+What expenses are reimbursable? (Switzerland),Expense Reimbursement,2026-05-21,0,0,0,
+What expenses are reimbursable? (Germany),Expense Reimbursement,2026-05-21,0,0,0,
+What expenses are reimbursable? (China),Expense Reimbursement,2026-05-21,0,0,0,
+What expenses are reimbursable? (India),Expense Reimbursement,2026-05-21,0,0,0,
+How do I get AV or technical support for a meeting or event?,Meetings and Events,2026-05-29,0,0,0,
+What approvals are needed for meetings and events?,Meetings and Events,2026-05-29,0,0,0,
+Who do I contact for support with a meeting or event?,Meetings and Events,2026-05-29,0,0,0,
+How do I request hosting an event after hours or on the weekend?,Meetings and Events,2026-09-25,0,0,0,
+What do I need to do when bringing a vendor or external service provider onsite for an event?,Meetings and Events,2026-09-11,0,0,0,
+How much will my onsite event cost?,Meetings and Events,2026-09-25,0,0,0,
+When can I use Simply Meet for venue sourcing?,Meetings and Events,2026-08-06,0,0,0,
+When do I need to submit a request if I need event support?,Meetings and Events,2026-09-11,0,0,0,
+When do I need to register my event?,Meetings and Events,2026-08-06,0,0,0,
+How do I use a central bill for my venue payment?,Meetings and Events,2026-09-25,0,0,0,
+How do I book a room or venue for a meeting or event?,Meetings and Events,2026-05-29,0,0,0,
+What is the process for inviting external attendees to an event?,Meetings and Events,2026-05-29,0,0,0,
+Who can sign contracts for a meeting or event?,Meetings and Events,2026-05-29,0,0,0,
+How do I request support for multi-day or multi-city events?,Meetings and Events,2026-09-11,0,0,0,
+What services are available for planning meetings or events?,Meetings and Events,2026-05-29,0,0,0,
+What do I need to do if I need signage or decorations at my event?,Meetings and Events,2026-09-25,0,0,0,
+How do I request catering at a meeting or event?,Meetings and Events,2026-05-29,0,0,0,
+How do I handle payments for meetings or events?,Meetings and Events,2026-05-29,0,0,0,
+What is Where to Meet and how should I use it when booking a meeting or event?,Meetings and Events,2026-08-06,0,0,0,
+What do I do if no onsite space is available?,Meetings and Events,2026-09-11,0,0,0,
+Who do I contact if I have a safety concern while traveling?,Travel Booking,2026-06-23,0,0,0,
+How do I book Secure Ground Transportation (SGT) for high-risk destinations?,Travel Booking,2026-09-24,0,0,0,
+How do I know if there is a travel risk advisory for my destination?,Travel Booking,2026-06-23,0,0,0,

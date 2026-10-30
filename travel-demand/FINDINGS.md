@@ -190,6 +190,71 @@ New ones took over:
 
 **Any trend by CTI breaks at July.** The intents here come from title text and labels, so they are stable across the change.
 
+## 9. What Skywalker's FAQ corpus covers
+
+The Skywalker FAQ index (`faq_evidence`, corpus version 2026-10-28) holds **104 FAQ fragments**:
+
+| Topic | Fragments |
+|---|--:|
+| Travel booking | 53 |
+| Expense reimbursement | 27 |
+| Meetings & events | 23 |
+| Expense system | 19 |
+| Travel risk | 8 |
+
+Fragments can carry more than one topic. I judged every intent against every travel and expense fragment by reading its full text. The judgment and the gap behind it are in `config/faq_coverage.csv`; demand-weighted results are in `reports/11_*.csv`.
+
+**Coverage, weighted by demand (ticket–intent rows):**
+
+| Set | Fully answered | Partly answered | Not covered |
+|---|--:|--:|--:|
+| Answerable needs (1,964) | 47% | 42% | 12% |
+| Answer-first needs (3,728) | 35% | 31% | 35% |
+
+Most answerable demand has *some* page, but more than half of it lacks a page that fully answers it. The eligibility and process questions in front of action requests are where whole topics are missing.
+
+**The content backlog**, ranked by the documentation demand each gap would serve (answerable plus answer-first tickets; `reports/11_gap_backlog.csv`):
+
+| Gap | Coverage | Tickets served | What is missing |
+|---|---|--:|---|
+| BahnCard request | none | 638 | Eligibility, which card and class, how to request |
+| V-Pay (using it, form access) | none | 452 | No V-Pay content at all |
+| Profile activation (rehire, RIF, transfer) | partial | 252 | Only new hires are covered |
+| Out-of-policy expense approval | partial | 228 | How to get an out-of-policy expense approved |
+| Booking-tool login troubleshooting | partial | 216 | Only "open a Travel RIVER ticket"; no common causes or fixes |
+| Profile data after migration | partial | 215 | Fixing manager, passport and accommodation fields |
+| Corporate / long-term housing | partial | 191 | Policy exists; how to request does not |
+| SNCF discount card | none | 152 | Nothing |
+| Cabin upgrade flagged on expense report | partial | 133 | What documentation the report needs |
+| Hotel not available in the tool | partial | 132 | What to do when a hotel shows no availability or isn't listed |
+| Expensing cancelled flights | none | 82 | Nothing beyond a policy section reference |
+| Economy fare quote for reimbursement | none | 75 | Nothing |
+| Unused flight credits | none | 42 | Nothing |
+| Trips booked in the old tool | none | 42 | Nothing |
+
+**Covered, but people still filed.** For each fully covered intent, I counted tickets created on or after the date its FAQ was first certified. 415 answerable tickets fall in that window (`reports/11_covered_but_filed.csv`):
+
+| Intent | Answerable tickets after the FAQ existed |
+|---|--:|
+| Rental insurance | 57 |
+| How to expense a travel cost | 56 |
+| Rental car policy | 48 |
+| General policy | 45 |
+| Personal upgrades | 42 |
+| Business + personal trips | 40 |
+| Seat fees | 25 |
+| Hotel policy | 16 |
+| Trail code | 15 |
+
+Answerable tickets on fully covered intents also **did not fall** after most FAQs were certified in May 2026. They averaged 9.8% of monthly tickets in January–April and 12.9% in June–September. *Inferred, not verified.* Certification is not proof that Skywalker was live or that employees could reach it. Without a launch date and usage logs, this shows **no visible deflection yet**, not a retrieval failure.
+
+**Corpus quality notes:**
+- **CVV.** The central-bill CVV answer is only a link to a SharePoint PDF. The tickets about it are mostly that link failing or access being denied.
+- **Thin pointers.** Several expense answers ("What expenses are reimbursable?" and most receipt pages) send the reader to a guide or policy without answering in the text.
+- **No structured links.** `policy_links` and `followup_fragment_ids` are empty on all 104 fragments, so the bundles in §7 can't yet be served as linked follow-ups.
+- **Out of scope by design.** Skywalker's own description says it cannot book, submit, approve or check status. That puts the 57% agent-action channel outside its scope by design.
+- **No travel demand.** 28 fragments map to no travel-ticket demand: 20 meetings & events pages, plus meals/per diem, mobile phone and travel-risk pages. That is expected, since this export holds only travel tickets.
+
 ## Limits
 
 - **No conversation text.** We can't count questions per ticket, measure time to first useful answer, judge closure quality, or see needs the title doesn't name. Multi-intent rates are therefore a floor.
@@ -200,11 +265,21 @@ New ones took over:
 
 ## Next steps (in priority order)
 
-1. **Pull descriptions and first comments** for a stratified sample (about 30 per top-30 intent). This measures recall and the real number of questions per ticket, and confirms the answerability calls.
-2. **Get the River HelpFinder catalog and the current FAQ / wiki pages**, then test coverage for the full-fit intents. That splits each one into a knowledge gap (no page), a discoverability gap (page exists, users don't find it) or a retrieval gap (Skywalker misses it).
-3. **Confirm with owners:**
+The ticket export is the complete ticket data available. Recall and questions-per-ticket can't be measured, so the work goes into content and evaluation.
+
+1. **Write the missing pages, in backlog order (§9):**
+   - BahnCard and SNCF eligibility pages, tagged by country
+   - one V-Pay page (eligibility, form access, how to request, what to do when it fails)
+   - profile lifecycle (rehire, RIF, transfer)
+   - out-of-policy expense approval
+   - booking-tool login troubleshooting
+   - housing request process
+   - cancelled-flight expensing, fare quotes and flight credits
+2. **Fix the thin answers people already hit:** the CVV link and access, and receipt and reimbursable-expense pages that only point elsewhere. Then populate `followup_fragment_ids` for the bundles in §7.
+3. **Build an evaluation set** from the answerable intents' canonical questions, written the way employees phrase them in the River topics and titles. Run it against the `faq_evidence` index to separate retrieval misses from content gaps.
+4. **Confirm with owners:**
+   - Skywalker's launch date and usage
    - Spotnana migration dates
    - the V-Pay form or link change in August
    - the meaning of `Error Per Ticket`
    - the July CTI remap
-4. **Draft FAQ content for the five bundles in §7,** plus BahnCard and SNCF eligibility pages tagged by country.

@@ -1,0 +1,10 @@
+set,coverage,intent_rows,share
+answerable needs,full,920,0.468
+answerable needs,partial,819,0.417
+answerable needs,none,225,0.115
+answer-first needs,full,1302,0.349
+answer-first needs,partial,1138,0.305
+answer-first needs,none,1288,0.345
+all needs,full,2642,0.296
+all needs,partial,4607,0.516
+all needs,none,1671,0.187

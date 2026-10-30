@@ -87,6 +87,20 @@ python3 scripts/analyze.py                    # -> reports/*.csv
 
 Requires `pandas` and `openpyxl`. Findings are in [`FINDINGS.md`](FINDINGS.md).
 
+## FAQ coverage
+
+`config/faq_coverage.csv` judges each intent against the Skywalker FAQ corpus (`data/corpus/skywalker_faq_corpus.jsonl`, not committed). The coverage levels are:
+
+- `full`: a fragment answers the canonical question.
+- `partial`: a fragment touches it but misses what tickets ask.
+- `none`: no fragment covers it.
+
+Each judgment names the fragments and the gap. `scripts/coverage.py` weights coverage by demand and writes `reports/11_*.csv`. That includes the tickets filed after a covering FAQ was first certified.
+
+```bash
+python3 scripts/coverage.py
+```
+
 ## Dashboard
 
 `dashboard/index.html` and `dashboard/app.js` are the page of the private **Travel Support Demand** dashboard artifact. It reads four de-identified JSON files from `scripts/export_dashboard.py` (`reports/dashboard/`). Those files hold no titles, ticket IDs, aliases or requester keys. Cross-ticket journeys ship only as an aggregate. Every filter is applied in the browser.
