@@ -53,8 +53,8 @@ export const MISSION_LABEL: Record<Mission["kind"], string> = {
 
 // ---------- Reading the history so far ----------
 
-/** The last recorded year (−1 before 1941 has been played). */
-export const lastT = (g: Game) => g.sim.t - 1;
+/** The last recorded year (−1 before 1941 has been played). A history that ends early stops at its final year. */
+export const lastT = (g: Game) => (g.sim.done ? g.sim.live().endYear - START : g.sim.t - 1);
 export const year = (g: Game) => START + g.sim.t;
 export const run = (g: Game): RunResult => g.sim.live();
 

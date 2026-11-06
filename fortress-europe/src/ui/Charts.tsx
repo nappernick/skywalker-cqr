@@ -19,7 +19,7 @@ export function ControlChart({ v }: { v: View }) {
   const y = scaleLinear().domain([0, 100]).range([H - m.b, m.t]);
   const band = area<number>().x((d) => x(d)).y0((d) => y(agg.control.p10[d])).y1((d) => y(agg.control.p90[d]))(years) ?? "";
   const med = line<number>().x((d) => x(d)).y((d) => y(agg.control.med[d]))(years) ?? "";
-  const runLine = v.mode === "run" ? line<number>().x((d) => x(d)).y((d) => y(v.glob(d, GF.CTRL)))(years) ?? "" : "";
+  const runLine = v.mode === "run" ? line<number>().x((d) => x(d)).y((d) => y(v.glob(d, GF.CTRL)))(years.slice(0, v.upTo + 1)) ?? "" : "";
   return (
     <section className="panel">
       <div className="panel-head">
@@ -60,12 +60,12 @@ export function GroupMultiples({ v }: { v: View }) {
       <div className="multiples">
         {GROUPS.map((g, gi) => {
           if (g.id === "vdt") return null;
-          const series = years.map((k) => Math.max(...CELLS_OF_GROUP[gi].map((i) => v.cell(k, i, CF.R))));
+          const series = years.slice(0, v.upTo + 1).map((k) => Math.max(...CELLS_OF_GROUP[gi].map((i) => v.cell(k, i, CF.R))));
           const d = line<number>().x((_, k) => x(k)).y((s) => y(s))(series) ?? "";
           const a = area<number>().x((_, k) => x(k)).y0(H - 1).y1((s) => y(s))(series) ?? "";
           return (
             <div key={g.id} className="mini">
-              <div className="row"><span className="nm" title={g.name}>{g.name}</span><span className="meta">{series[t].toFixed(2)}</span></div>
+              <div className="row"><span className="nm" title={g.name}>{g.name}</span><span className="meta">{(series[Math.min(t, series.length - 1)] ?? 0).toFixed(2)}</span></div>
               <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
                 <path className="rb" d={a} />
                 <line className="thr" x1={0} x2={W} y1={y(0.5)} y2={y(0.5)} />

@@ -4,10 +4,21 @@ import { DEFAULT_PARAMS, PRESETS, cloneAff } from "./model/presets";
 import type { Aggregate, Outcome, Params, RunResult, SponsorId } from "./model/types";
 import type { FromWorker, RunSummary, ToWorker } from "./protocol";
 import { handle } from "./engine";
+import { newGame, lastT, type Game, type Mode } from "./game/game";
 
 export type Lever = Exclude<keyof Params, "aff" | "runs" | "seed">;
 
 interface State {
+  /** The game, or the simulator behind it. */
+  screen: "game" | "model";
+  game: Game | null;
+  /** Bumped whenever the game changes, so components re-render. */
+  gv: number;
+  setScreen: (s: "game" | "model") => void;
+  startGame: (mode: Mode, group: string | null) => void;
+  /** Runs a game action and re-renders. */
+  act: (fn: (g: Game) => unknown) => void;
+  quitGame: () => void;
   params: Params;
   preset: string | null;
   running: boolean;
@@ -74,6 +85,18 @@ export const useStore = create<State>((set, get) => {
   };
   setTimeout(() => schedule(0));
   return {
+    screen: "game",
+    game: null,
+    gv: 0,
+    setScreen: (screen) => set({ screen }),
+    startGame: (mode, group) => set({ game: newGame(mode, get().params, group), gv: get().gv + 1, t: 0, region: null, playing: false }),
+    act: (fn) => {
+      const g = get().game;
+      if (!g) return;
+      fn(g);
+      set({ gv: get().gv + 1, t: Math.max(0, lastT(g)) });
+    },
+    quitGame: () => set({ game: null, gv: get().gv + 1 }),
     params: { ...DEFAULT_PARAMS, aff: cloneAff() },
     preset: "historical",
     running: true,

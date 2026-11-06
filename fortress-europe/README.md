@@ -91,6 +91,13 @@ fortress-europe/
     engine.ts           runs a batch and serves single runs; used by the worker, or on the main thread if workers are blocked
     worker.ts           thin worker around engine.ts
     protocol.ts         messages between page and engine
+  src/game/
+    game.ts             game state, modes, budgets, actions, ending a year
+    cards.ts            story cards
+    chapters.ts         story chapters
+    game.test.ts        plays every mode to the end
+  src/ui/game/          setup, play and verdict screens; theme (palettes and type)
+  design/               palette enumeration and gallery
   src/ui/
     view.ts             one read interface over batch medians ("average") or a single run
     geo.ts              map geometry from world-atlas, built once
@@ -440,6 +447,19 @@ Built with React 18.3.1, zustand, d3-geo, d3-scale, d3-shape, topojson-client an
 - **Region detail:** status, regime, terrain, reach, resources, garrison; the governor or allied ruler with talent bars; any resistance leader; every group's dissent, defiance, fear, armed strength, strikes, hunger, victimization, awareness and population, plus supply by sponsor; rivalries.
 - **Charts:** control over time with the p10–p90 band and the selected run; small multiples of each group's peak armed strength; a chronicle synced to the year (in average mode, milestones across runs).
 - **Explainer:** the peoples, Berlin's people and governors, supply and neutrals, the psychology, leadership and exceptional people, resources, the genocide note, calibration and limits (with this batch's results against every group target), and sources.
+
+## 10a. The game
+
+The page opens on a strategy game built on the same engine; the simulator above is its "model and sources" tab.
+
+- **Engine.** `createSim()` advances one year per `step(interventions)`. `simulate()` runs the same steps with no player and reproduces earlier results exactly. Interventions (`types.ts`): arms per people (`S_PL` in the cell record), radios per region, standing orders (rise, wait, truce, strike and refuse) and one-year operations (assassinate a governor, sabotage, broadcast the evidence, hide a leader, send instructors).
+- **Modes** (`src/game/game.ts`):
+  - *Spymaster*: influence each year from Washington's and London's appetite (`6 + 14 × will`); arms (10 per 0.1), radios (10 per 0.1) and operations anywhere; peoples you arm with at least 0.2 take your orders.
+  - *One people*: organization from the people's dissent, exile backing and armed strength; orders for your people, operations where it lives, and appeals that raise a sponsor's attitude for good.
+  - *Story*: one history in eight chapters (`chapters.ts`), each a real role with a brief and an objective judged at its end: Užice 1941–42, London 1943–44, the forest army 1945–47, the long wait 1948–50, Aerodynamic 1951–54, Transistor Europe 1955–58, the officers' plot 1959–64, the endgame 1965–70.
+- **Story cards** (`cards.ts`): 19 dilemmas drawn from real ones (Kragujevac, Anthropoid, Vemork, Karski's report, Moscow's offer, the Warsaw question, Volhynia, deserting police, the church war, Zamość, Tito vs. Mihailović, the Slovak plot, Churchill's return, transistor radios…). Up to two are dealt each year when the history makes them possible; the year cannot end until they are answered. Every choice works through an existing mechanism, so the engine decides what it costs. The murder of Europe's Jews is never a variable: cards only change what becomes known.
+- **The verdict** compares the final Reich control with the same world played without you (the batch running in the worker), and counts the orders that brought reprisals.
+- **Look** (`src/ui/game/`): design per Nick's design-sourcing rules. Palettes are route-B draws from his Khroma favourites (`design/palettes.ts` enumerates 968,312 valid role assignments over 131 frame/block pairs; `design/gallery.ts` renders the numbered gallery). Any palette number can be tried live in the game; type options are Chivo, Rubik, or Barlow Condensed with Work Sans (all from Typewolf's Google Fonts list, tabular figures verified in a browser; Archivo Narrow failed). Roles: text and text-2 on frame or block; flag on frame only; rule decorative only.
 
 ## 11. Publishing as a claude.ai artifact
 
