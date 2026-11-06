@@ -13,7 +13,7 @@ import { US_GOVS, UK_GOVS, SU_GOVS, govAt } from "./world";
 import {
   CF, NCF, RF, NRF, GF, NGF,
   type EventKind, type FactionId, type Governor, type Outcome, type Params, type ResLeader, type Ruler, type RunResult,
-  type SimEvent, type Talent,
+  type SimEvent, type Talent, type Interventions, type Mission,
 } from "./types";
 
 export function mulberry32(seed: number): () => number {
@@ -93,7 +93,23 @@ const figureTalent = (f: Figure): Talent => ({
   force: f.force, competence: f.competence, ideology: f.ideology, ...FIGURE_TALENT[f.key], exceptional: f.key === "hitler",
 });
 
+/** A run that advances one year at a time, so a player can act between years. */
+export interface Sim {
+  /** Index of the next year to simulate (0 = 1941); equals the number of years recorded so far. */
+  readonly t: number;
+  readonly done: boolean;
+  step(iv?: Interventions): void;
+  /** The run so far. Years not yet simulated are zero. The outcome is provisional until done. */
+  live(): RunResult;
+  /** Runs any remaining years with no player and returns the final result. */
+  finish(): RunResult;
+}
+
 export function simulate(p: Params, rng: () => number, id: number): RunResult {
+  return createSim(p, rng, id).finish();
+}
+
+export function createSim(p: Params, rng: () => number, id: number): Sim {
   const NR = REGIONS.length;
   const NG = GROUPS.length;
   const cellRec = new Float32Array(YEARS * NC * NCF);
@@ -342,7 +358,15 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
     if (log) say(y, "governor", `${ZONES[zi].name}: ${old.name} is replaced by ${name} (${why}).`, ZONES[zi].regions[0]);
   }
 
-  for (let t = 0; t < YEARS; t++) {
+  let t = 0;
+  let done = false;
+  let iv: Interventions = {};
+  const sabotaged = new Array(NR).fill(0);
+  const missionOf = <K extends Mission["kind"]>(k: K) => (iv.missions ?? []).filter((m): m is Extract<Mission, { kind: K }> => m.kind === k);
+
+  const step = (next: Interventions = {}): void => {
+    if (done) return;
+    iv = next;
     const y = START + t;
     const usG = govAt(US_GOVS, y);
     const ukG = govAt(UK_GOVS, y);
@@ -414,7 +438,16 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
       X = clamp(X - 0.05, 0.05, 0.95);
       say(y, "nuke", deBomb ? "The United States tests an atomic bomb, years after Germany did." : "The United States tests an atomic bomb. American covert help to European resistance grows bolder.");
     }
-    const haveInputs = !lost[REGION_INDEX.cze] && !lost[REGION_INDEX.nor];
+    // Sabotage: a raid on a mine, plant or railway cuts a region's yield for two years (Vemork, 1943).
+    for (const m of missionOf("sabotage")) {
+      const r = REGION_INDEX[m.region];
+      sabotaged[r] = 2;
+      for (const i of CELLS_OF_REGION[r]) cAtro[i] = clamp(cAtro[i] + 0.05 * brutEff, 0, 1);
+      say(y, "mission", m.region === "nor"
+        ? "Norway: saboteurs trained abroad wreck the Vemork heavy-water plant. Germany's atomic program loses its moderator for years."
+        : `${REGIONS[r].name}: saboteurs wreck mines, plants and railways. Output falls; the occupier takes hostages.`, m.region);
+    }
+    const haveInputs = !lost[REGION_INDEX.cze] && !lost[REGION_INDEX.nor] && !sabotaged[REGION_INDEX.nor] && !sabotaged[REGION_INDEX.cze];
 
     // 5. Strategic resources: where Germany's oil, coal, ore, food and metals come from
     const neutralFear = clamp(0.45 * coh * (0.6 + 0.4 * X) + (deBomb !== null && !usHas ? 0.2 : 0) + 0.1 * (T.diplomat - 0.45), 0, 0.85);
@@ -423,7 +456,7 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
     REGIONS.forEach((r, i) => {
       const rr = REGION_RESOURCES[r.id];
       if (!rr || lost[i]) return;
-      const work = (contested[i] ? 0.6 : 1) * (1 - 0.6 * regR[i]) * (1 - 0.5 * regNC[i]) * (r.kind === "ally" ? 0.85 : 0.6 + 0.4 * extrEff);
+      const work = (sabotaged[i] ? 0.5 : 1) * (contested[i] ? 0.6 : 1) * (1 - 0.6 * regR[i]) * (1 - 0.5 * regNC[i]) * (r.kind === "ally" ? 0.85 : 0.6 + 0.4 * extrEff);
       for (const k of RES) {
         const v = rr[k];
         if (v) supplyRes[k] += v * work * (k === "food" ? harvest[HARVEST_ZONE[r.id]] : 1);
@@ -570,7 +603,7 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
 
         // Victimization by rival groups' collaborators: divide and rule turns neighbors into enforcers.
         let vict = 0;
-        for (const [j, k] of RIVALS_OF_CELL[i]) vict += k * Math.max(cColAct[j], cR[j]) * Math.min(1, CELLS[j].share * cPop[j] * 4);
+        for (const [j, k] of RIVALS_OF_CELL[i]) vict += k * Math.max(cColAct[j], cR[j] * (iv.stance?.[GROUPS[CELLS[j].g].id] === "truce" ? 0.4 : 1)) * Math.min(1, CELLS[j].share * cPop[j] * 4);
         vict = clamp(vict, 0, 1);
 
         // Food: German quotas against the harvest. A bad year turns quotas into famine.
@@ -600,7 +633,10 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
         }
 
         // Knowledge of genocide: mostly hidden until neighbors visibly vanish, then impossible to hide.
-        const leak = INFO * 0.4 * clamp((y - 1942) / 10, 0, 1);
+        // Radio sets and couriers add local information; a broadcast of the evidence (Karski's report, the Auschwitz
+        // Protocols) makes the killing known everywhere at once.
+        const infoHere = clamp(INFO + (iv.info?.[reg.id] ?? 0), 0, 1);
+        const leak = infoHere * 0.4 * clamp((y - 1942) / 10, 0, 1) + (missionOf("broadcast").length ? 0.25 : 0);
         const ownLoss = clamp((1 - cPop[i]) * 4, 0, 1);
         cAware[i] = Math.max(cAware[i], cAware[i] + 0.3 * (clamp(0.7 * visible + ownLoss + leak, 0, 1) - cAware[i]));
         const aware = cAware[i];
@@ -618,11 +654,13 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
           const nn = NEUTRALS.find((n) => n.id === nid)!;
           sNE += w * nn.courage * (p.neutral / 0.4) * (1 - neutralFear) * 0.35;
         }
-        if (L) { const m = 1 + 0.6 * L.diplomat * L.force; sUS *= m; sUK *= m; sEX *= m; sSU *= m; sNE *= m; }
-        const raw = sUS + sUK + sEX + sSU + sNE;
+        // The player's own deliveries reach as far as any route does, and German interdiction applies to them too.
+        let sPL = (iv.supply?.[g.id] ?? 0) * Math.max(0.2, reg.westReach, rumpAlive ? reg.sovReach : 0) * deter;
+        if (L) { const m = 1 + 0.6 * L.diplomat * L.force; sUS *= m; sUK *= m; sEX *= m; sSU *= m; sNE *= m; sPL *= m; }
+        const raw = sUS + sUK + sEX + sSU + sNE + sPL;
         const supply = clamp(raw, 0, 1) * (1 - clamp(0.2 * S, 0, 0.45));
         const scale = raw > 0 ? supply / raw : 0;
-        sUS *= scale; sUK *= scale; sEX *= scale; sSU *= scale; sNE *= scale;
+        sUS *= scale; sUK *= scale; sEX *= scale; sSU *= scale; sNE *= scale; sPL *= scale;
 
         // Private dissent: what people really think
         if (y >= 1955) cGen[i] += g.bm < 0.5 && brutLocal < 0.6 ? -0.004 : g.bm > 0.7 && brutLocal > 0.6 ? 0.003 : 0;
@@ -638,7 +676,7 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
         // Fear and perceived odds decide whether private dissent becomes public defiance (Kuran; Granovetter).
         const garD = gar[r];
         const fear = clamp(0.05 + brutLocal * g.bm * 0.4 + Math.min(1, garD * 6) * 0.3 - cR[i] * 0.5, 0, 1) * (1 - 0.5 * thaw);
-        const odds = clamp(cR[i] * 0.7 + (1 - X) * 0.5 + supply * 0.3 + INFO * 0.15 * regA[r] + 0.2 * thaw, 0, 1);
+        const odds = clamp(cR[i] * 0.7 + (1 - X) * 0.5 + supply * 0.3 + infoHere * 0.15 * regA[r] + 0.2 * thaw, 0, 1);
         // Indiscriminate violence removes the safety of staying passive (Kalyvas).
         const desperation = clamp(cAtro[i] * TUNE.despAtro + indisc * g.bm * TUNE.despBrut + hunger * 0.25 + vict * 0.3
           + aware * marked * 0.2 + roundup * 0.15 + gpoHit * 4, 0, 1) * (0.35 + 0.65 * c.terrain) * (cR[i] > 0.03 ? 1 : 0.4);
@@ -652,7 +690,7 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
         }
 
         // Non-cooperation: strikes, refusal, go-slows. A nonviolent leader turns defiance into this rather than arms.
-        const nonviol = L ? clamp((0.35 - L.violence) / 0.35, 0, 1) * L.force : 0;
+        const nonviol = Math.max(iv.stance?.[g.id] === "nonviolent" ? 0.6 : 0, L ? clamp((0.35 - L.violence) / 0.35, 0, 1) * L.force : 0);
         cNC[i] = clamp(cA[i] * (0.25 + 0.65 * nonviol), 0, 1);
         if (nonviol > 0.3 && cNC[i] > 0.2) {
           const repress = brutLocal * T.ideology;
@@ -667,7 +705,7 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
 
         // Communist-nationalist infighting inside the group
         const twoSponsors = sSU > 0.03 && sUS + sUK + sEX > 0.03;
-        const infight = g.polar * 2 * Math.min(g.comm, 1 - g.comm) * clamp(cR[i] * 2, 0, 1) * (twoSponsors ? 1 : 0.6) * (L ? 1 - 0.7 * L.diplomat * L.force : 1);
+        const infight = g.polar * 2 * Math.min(g.comm, 1 - g.comm) * clamp(cR[i] * 2, 0, 1) * (twoSponsors ? 1 : 0.6) * (L ? 1 - 0.7 * L.diplomat * L.force : 1) * (iv.stance?.[g.id] === "truce" ? 0.3 : 1);
         if (!ally && !logged[i].infight && infight > 0.3 && cR[i] > 0.25) {
           logged[i].infight = true;
           say(y, "faction", `${reg.name}: communist and nationalist ${g.name} turn their guns on each other${twoSponsors ? ", each armed by a different sponsor" : ""}. German security services play one off against the other.`, reg.id);
@@ -692,10 +730,11 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
           // Exile-led movements wait for a liberator before fighting in the open (the Home Army, the Chetniks, de Gaulle's
           // networks), unless one is near or the Reich looks beatable. Communist-led ones do not wait.
           const liberator = (rumpAlive && K > 0.6 && reg.sovReach >= 0.4) || X < 0.3 || coh < 0.4;
-          const wait = liberator ? 0 : g.exile * (1 - g.comm);
+          const stance = iv.stance?.[g.id];
+          const wait = stance === "rise" ? 0 : stance === "wait" ? Math.max(0.8, liberator ? 0 : g.exile * (1 - g.comm)) : liberator ? 0 : g.exile * (1 - g.comm);
           const growth = (0.55 * cR[i] * (1 - cR[i] / armsCap) * (cA[i] - TUNE.growthThr) * (0.6 + 0.6 * c.terrain) * (1 + 0.3 * cLearn[i]) * gen
             + 0.1 * supply * cA[i] + 0.015 * cA[i] + 0.05 * roundup * cD[i] * c.terrain
-            + TUNE.rise * (desperation * cA[i] + Math.max(0, cA[i] - theta)) * Math.max(0, 1 - cR[i] / armsCap)) * (1 - 0.7 * nonviol) * (1 - wait) - 0.06 * infight * cR[i];
+            + (stance === "rise" ? 1.3 : 1) * TUNE.rise * (desperation * cA[i] + Math.max(0, cA[i] - theta)) * Math.max(0, 1 - cR[i] / armsCap)) * (1 - 0.7 * nonviol) * (1 - wait) - 0.06 * infight * cR[i];
           const supp = garD * TUNE.suppW * (1 - 0.55 * c.terrain * (1 - heli)) * (0.75 + 0.5 * brutLocal) * (0.6 + 0.8 * comp)
             * (1 + 0.3 * (gt.general - 0.4)) * (1 + 0.4 * learnG) * (1 + 0.15 * (T.general - 0.4)) * Math.min(1, cR[i] * 4) * (1 - 0.5 * supply)
             * (L ? 1 - 0.3 * L.general * L.force : 1)
@@ -705,7 +744,7 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
           if (cR[i] > 0.12) cCap[i] = clamp(cCap[i] - indisc * g.bm * 0.035 * (1 - supply) * (1 - c.terrain * 0.4), 0.25, 1);
           else cCap[i] = clamp(cCap[i] + 0.01, 0.25, 1);
           cR[i] = clamp(cR[i] + growth - supp + gauss(rng) * 0.018, 0, 1);
-          cLearn[i] = clamp(cLearn[i] + (cR[i] > 0.1 ? 0.03 : -0.02), 0, 1);
+          cLearn[i] = clamp(cLearn[i] + (cR[i] > 0.1 ? 0.03 : -0.02) + (missionOf("train").some((m) => m.group === g.id) ? 0.25 : 0), 0, 1);
           if (L && L.violence > 0.75) for (const [j, k] of RIVALS_OF_CELL[i]) cAtro[j] = clamp(cAtro[j] + 0.03 * k * cR[i], 0, 1);
         } else if (!lost[r]) {
           cR[i] = clamp(cR[i] + 0.1 * (cA[i] * 0.6 - cR[i]) + gauss(rng) * 0.01, 0, 1);
@@ -715,7 +754,7 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
         const restraint = gov.faction === "ally" ? 0 : gov.competence * (1 - gov.zeal);
         colActNext[i] = Math.max(titular && allyKey ? allyCommit[allyKey] * g.collabP * (1 - restraint) : 0, clamp(colLocal * g.collabP * (1 - 0.6 * cD[i]) * (0.5 + 0.5 * X), 0, 1));
         if (cR[i] > groupPeak[c.g]) groupPeak[c.g] = cR[i];
-        recordCell(t, i, sUS, sUK, sEX, sSU, sNE, fear, vict, hunger);
+        recordCell(t, i, sUS, sUK, sEX, sSU, sNE, fear, vict, hunger, sPL);
       }
 
       // Region aggregates, weighted by surviving population
@@ -818,6 +857,19 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
         if (lost[r]) zl++;
       }
       zr /= z.regions.length;
+      // A team trained abroad goes after the governor, as Anthropoid went after Heydrich.
+      if (missionOf("assassinate").some((m) => m.zone === z.id)) {
+        if (rng() < 0.3 + 0.4 * zr + 0.2 * (1 - g.competence)) {
+          for (const rid of z.regions) for (const i of CELLS_OF_REGION[REGION_INDEX[rid]]) cAtro[i] = clamp(cAtro[i] + 0.25 * brutEff, 0, 1);
+          say(y, "mission", `${z.name}: a team trained abroad kills ${g.name}. The reprisals destroy whole villages, as at Lidice.`, z.regions[0]);
+          replaceGov(zi, y, "his predecessor's assassination");
+          if (g.name === "Reinhard Heydrich") { heydrichAlive = false; heirAlive.heydrich = false; }
+          zoneR[zi] = zr;
+          return;
+        }
+        for (const rid of z.regions) for (const i of CELLS_OF_REGION[REGION_INDEX[rid]]) cAtro[i] = clamp(cAtro[i] + 0.08 * brutEff, 0, 1);
+        say(y, "mission", `${z.name}: the attempt on ${g.name} fails. The team is betrayed and hunted down, and the Gestapo takes hostages.`, z.regions[0]);
+      }
       if (rng() < 0.03 * zr * (0.3 + 2 * zs) * (1 - 0.5 * g.competence)) {
         for (const rid of z.regions) for (const i of CELLS_OF_REGION[REGION_INDEX[rid]]) cAtro[i] = clamp(cAtro[i] + 0.15 * brutEff, 0, 1);
         say(y, "governor", `${z.name}: the resistance assassinates ${g.name}. Reprisals follow: hostages shot, villages burned.`, z.regions[0]);
@@ -851,10 +903,12 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
           groupLeader[g] = resLeaders.length - 1;
           say(y, "psych", `${regionName}: ${name} emerges at the head of the resistance, ${describeAlignment(tal)}.${nonv ? " The movement turns to mass nonviolent refusal." : ""}`, REGIONS[CELLS.find((c) => c.g === g)!.r].id);
         }
-      } else if (rng() < 0.04 + 0.12 * maxR * brutEff * (1 - resLeaders[li].talent.general * 0.5)) {
+      } else if (rng() < (0.04 + 0.12 * maxR * brutEff * (1 - resLeaders[li].talent.general * 0.5)) * (missionOf("protect").some((m) => m.group === GROUPS[g].id) ? 0.3 : 1)) {
         endLeader(g, y, "killed by the security services");
       }
     }
+
+    for (let r = 0; r < NR; r++) if (sabotaged[r] > 0) sabotaged[r]--;
 
     // 15. Cohesion, the home front, and expectations
     // Losses hurt in proportion to what they are worth: Montenegro is not France.
@@ -901,15 +955,17 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
         ? "The thaw becomes a collapse. Once fear lifts, the occupied peoples, the allies and finally the German elites stop pretending, and the empire comes apart."
         : "Regime cohesion collapses. Factions, generals and regional bosses fight over the wreckage, and the occupied countries break free.");
     }
-    if (outcome) { lastT = t; break; }
-  }
+    if (outcome) { lastT = t; done = true; return; }
+    t++;
+    if (t >= YEARS) done = true;
+  };
 
-  function recordCell(t: number, i: number, sUS: number, sUK: number, sEX: number, sSU: number, sNE = 0, fear = 0, vict = 0, hunger = 0) {
+  function recordCell(t: number, i: number, sUS: number, sUK: number, sEX: number, sSU: number, sNE = 0, fear = 0, vict = 0, hunger = 0, sPL = 0) {
     const o = (t * NC + i) * NCF;
     cellRec[o + CF.R] = cR[i]; cellRec[o + CF.A] = cA[i]; cellRec[o + CF.D] = cD[i]; cellRec[o + CF.FEAR] = fear;
     cellRec[o + CF.VICT] = vict; cellRec[o + CF.S_US] = sUS; cellRec[o + CF.S_UK] = sUK; cellRec[o + CF.S_EX] = sEX;
     cellRec[o + CF.S_SU] = sSU; cellRec[o + CF.S_NE] = sNE; cellRec[o + CF.HUNG] = hunger; cellRec[o + CF.POP] = cPop[i];
-    cellRec[o + CF.NC] = cNC[i]; cellRec[o + CF.AWARE] = cAware[i];
+    cellRec[o + CF.NC] = cNC[i]; cellRec[o + CF.AWARE] = cAware[i]; cellRec[o + CF.S_PL] = sPL;
   }
 
   function endLeader(g: number, y: number, fate: string) {
@@ -921,6 +977,13 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
     say(y, "psych", `${resLeaders[li].name} is ${fate}.`);
   }
 
+  const result = (): RunResult => ({
+    id, outcome: outcome ?? "hegemony", endYear, cells: cellRec, regions: regRec, glob, govs, rulers, resLeaders, events,
+    lostByResistance, contestedEver, groupPeak, heydrichAlive,
+  });
+
+  const finish = (): RunResult => {
+  while (!done) step();
   // After an early end, the empire is gone: carry the final state forward with every region freed.
   for (let t = lastT + 1; t < YEARS; t++) {
     cellRec.copyWithin(t * NC * NCF, lastT * NC * NCF, (lastT + 1) * NC * NCF);
@@ -945,10 +1008,15 @@ export function simulate(p: Params, rng: () => number, id: number): RunResult {
     say(END, "end", text[outcome]);
   }
   for (const l of resLeaders) if (l.until === null) l.fate = "still leading at the end of the run";
+  return result();
+  };
 
   return {
-    id, outcome, endYear, cells: cellRec, regions: regRec, glob, govs, rulers, resLeaders, events,
-    lostByResistance, contestedEver, groupPeak, heydrichAlive,
+    get t() { return t; },
+    get done() { return done; },
+    step,
+    live: result,
+    finish,
   };
 }
 

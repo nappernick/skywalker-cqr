@@ -132,7 +132,7 @@ export interface Params {
   seed: number;
 }
 
-export type EventKind = "start" | "regime" | "loss" | "gain" | "nuke" | "psych" | "faction" | "ethnic" | "sponsor" | "governor" | "berlin" | "famine" | "church" | "genocide" | "labor" | "ally" | "end";
+export type EventKind = "start" | "regime" | "loss" | "gain" | "nuke" | "psych" | "faction" | "ethnic" | "sponsor" | "governor" | "berlin" | "famine" | "church" | "genocide" | "labor" | "ally" | "end" | "mission" | "story";
 
 export interface SimEvent {
   y: number;
@@ -142,8 +142,8 @@ export interface SimEvent {
 }
 
 /** Per cell (group within region) per year fields. */
-export const CF = { R: 0, A: 1, D: 2, FEAR: 3, VICT: 4, S_US: 5, S_UK: 6, S_EX: 7, S_SU: 8, S_NE: 9, HUNG: 10, POP: 11, NC: 12, AWARE: 13 } as const;
-export const NCF = 14;
+export const CF = { R: 0, A: 1, D: 2, FEAR: 3, VICT: 4, S_US: 5, S_UK: 6, S_EX: 7, S_SU: 8, S_NE: 9, HUNG: 10, POP: 11, NC: 12, AWARE: 13, S_PL: 14 } as const;
+export const NCF = 15;
 
 /** Per region per year fields. */
 export const RF = { LOST: 0, R: 1, A: 2, GOV: 3, GAR: 4, CONT: 5 } as const;
@@ -213,4 +213,25 @@ export interface Aggregate {
   globMed: number[][];
   /** [year] share of runs in which the founder generation is gone (no ruler born before 1906). */
   newGeneration: number[];
+}
+
+/** What a people's movement has been told to do this year. */
+export type Stance = "rise" | "wait" | "truce" | "nonviolent";
+
+/** A one-year covert operation. Each mirrors a real kind of operation from 1941–45. */
+export type Mission =
+  | { kind: "assassinate"; zone: string }
+  | { kind: "sabotage"; region: string }
+  | { kind: "broadcast" }
+  | { kind: "protect"; group: string }
+  | { kind: "train"; group: string };
+
+/** A player's choices for one year. Every field is optional; an empty object is the history with no player. */
+export interface Interventions {
+  /** Arms delivered to each people (0–1, before reach and interdiction). */
+  supply?: Record<string, number>;
+  /** Radio sets, transmitters and couriers added to each region's information (0–0.5). */
+  info?: Record<string, number>;
+  stance?: Record<string, Stance>;
+  missions?: Mission[];
 }

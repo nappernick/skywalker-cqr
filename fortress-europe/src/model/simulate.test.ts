@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { runBatch, simulate, mulberry32 } from "./simulate";
+import { runBatch, simulate, createSim, mulberry32 } from "./simulate";
 import { aggregate } from "./aggregate";
 import { DEFAULT_PARAMS, PRESETS, cloneAff } from "./presets";
 import { REGIONS, YEARS } from "./regions";
@@ -121,5 +121,41 @@ describe("engine", () => {
     const got = handle({ type: "get", token: 1, id: 7 });
     expect(got?.msg.type === "run" && got.msg.run.id).toBe(7);
     expect(handle({ type: "get", token: 1, id: 99 })).toBeNull();
+  });
+});
+
+describe("stepping and player interventions", () => {
+  const p = paramsFor("historical");
+  test("stepping year by year with no player reproduces simulate()", () => {
+    const a = simulate(p, mulberry32(11), 0);
+    const sim = createSim(p, mulberry32(11), 0);
+    while (!sim.done) sim.step({});
+    const b = sim.finish();
+    expect(b.outcome).toBe(a.outcome);
+    expect(b.endYear).toBe(a.endYear);
+    expect(Array.from(b.glob)).toEqual(Array.from(a.glob));
+  });
+
+  test("arming a people raises its armed strength", () => {
+    const g = GROUPS.findIndex((x) => x.id === "pol");
+    const peak = (supply: number) => {
+      let s = 0;
+      for (let k = 0; k < 20; k++) {
+        const sim = createSim(p, mulberry32(100 + k), k);
+        for (let y = 0; y < 6; y++) sim.step({ supply: { pol: supply } });
+        const r = sim.live();
+        const cells = CELLS.flatMap((c, i) => (c.g === g ? [i] : []));
+        s += Math.max(...cells.map((i) => r.cells[(5 * NC + i) * NCF + CF.R]));
+      }
+      return s;
+    };
+    expect(peak(0.8)).toBeGreaterThan(peak(0));
+  });
+
+  test("sabotage and a broadcast are recorded as operations", () => {
+    const sim = createSim(p, mulberry32(3), 0);
+    sim.step({ missions: [{ kind: "sabotage", region: "nor" }, { kind: "broadcast" }] });
+    expect(sim.live().events.some((e) => e.kind === "mission" && e.region === "nor")).toBe(true);
+    expect(sim.t).toBe(1);
   });
 });

@@ -15,5 +15,5 @@ export const OUTCOME_LABEL = Object.fromEntries(OUTCOMES.map((o) => [o.id, o.lab
 export const KIND_LABEL: Record<EventKind, string> = {
   start: "Start", regime: "Berlin", loss: "Loss", gain: "Gain", nuke: "Atomic", psych: "Society", faction: "Infighting",
   ethnic: "Ethnic", sponsor: "Sponsors", governor: "Governors", berlin: "Berlin", famine: "Famine", church: "Churches",
-  genocide: "Genocide", labor: "Labor", ally: "Allies", end: "End",
+  genocide: "Genocide", labor: "Labor", ally: "Allies", end: "End", mission: "Operations", story: "Decisions",
 };
